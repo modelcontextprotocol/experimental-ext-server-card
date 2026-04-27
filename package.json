@@ -1,0 +1,22 @@
+{
+  "name": "@modelcontextprotocol/experimental-ext-server-card",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Experimental schema for SEP-2127 (MCP Server Cards). See README for status and graduation plan.",
+  "type": "module",
+  "scripts": {
+    "generate": "tsx scripts/generate-schema.ts",
+    "check": "tsx scripts/generate-schema.ts --check && tsc --noEmit",
+    "validate": "tsx scripts/validate-examples.ts",
+    "format": "prettier --write \"**/*.{ts,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,json,md}\""
+  },
+  "devDependencies": {
+    "ajv": "^8.18.0",
+    "ajv-formats": "^3.0.1",
+    "prettier": "^3.6.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.6.2",
+    "typescript-json-schema": "^0.67.1"
+  }
+}

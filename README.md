@@ -1,76 +1,49 @@
-# MCP Server Cards (Experimental Extension)
+# MCP Server Card — Experimental Extension
 
-> #### **Status:** Experimental. This work is for prototyping and feedback only, and is not an accepted or official MCP extension.
+> ⚠️ **Experimental** — This is an experimental MCP extension and is not yet part of the core specification. See [Extensions Overview](https://modelcontextprotocol.io/extensions/overview) for more on experimental extensions.
 
-This repository defines a TypeScript source-of-truth and generated JSON Schema for **MCP Server Cards** — a static metadata document that describes a remote MCP server enough for clients to discover and connect to it before initialization.
+## What is an MCP Server Card?
 
-It tracks [SEP-2127](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127) and is intended to be lifted directly into the main spec when Server Cards graduate (see [Graduation plan](#graduation-plan) below).
+An MCP Server Card is a structured metadata document that servers expose through standardized mechanisms — primarily `.well-known` endpoints — to enable discovery of MCP servers without requiring a full initialization handshake.
 
-A prior attempt to land these types directly in the core spec ([modelcontextprotocol#2652](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2652)) is being relaunched here as an experimental extension while the SEP itself is still under review.
+### Key use cases
 
-## What is a Server Card?
+- **Autoconfiguration** — Clients can automatically configure connections to MCP servers using discovered metadata
+- **Automated discovery** — Tooling and registries can find and catalog MCP servers without manual entry
+- **Reduced latency metadata retrieval** — Essential server information is available before establishing a full MCP session
 
-A **Server Card** is a JSON document, typically published at `https://<host>/.well-known/mcp/server-card`, describing:
+## Status
 
-- The server's identity (`name`, `version`, `description`, optional `title` / `icons` / `repository` / `websiteUrl`)
-- Its remote transport endpoints (URLs, headers, variable templates, supported protocol versions)
-- Optional registry-style extension metadata (`_meta`)
+The Server Card specification is being developed as [SEP-2127: MCP Server Cards — HTTP Server Discovery via `.well-known`](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127). This repository hosts the experimental extension while the proposal progresses through the specification process.
 
-The companion **Server** document is a strict superset that adds locally-runnable `packages` — it is the shape the [MCP Registry](https://github.com/modelcontextprotocol/registry) uses for `server.json`.
+## Working Group
 
-Server Cards intentionally omit primitive listings (tools, resources, prompts) — those remain subject to runtime listing via the protocol's standard list operations.
+The Server Card Working Group drives the design and development of this extension.
 
-## Layout
+**Leads:**
+- [@dsp-ant](https://github.com/dsp-ant) (David Soria Parra, Anthropic)
+- [@SamMorrowDrums](https://github.com/SamMorrowDrums) (Sam Morrow Drums, GitHub)
 
-```
-schema.ts                    # TypeScript source of truth (single file)
-schema.json                  # Generated JSON Schema 2020-12 (do not edit by hand)
-scripts/
-  generate-schema.ts         # Generates schema.json from schema.ts
-  validate-examples.ts       # Validates examples/ against the generated schema
-examples/
-  ServerCard/{valid,invalid} # Example Server Card documents
-  Server/{valid,invalid}     # Example Server (registry-shaped) documents
-```
+**Members:**
+- [@tadasant](https://github.com/tadasant) (Tadas Antanavicius)
 
-The generated `schema.json` is checked into the repo so consumers can grab it without running the toolchain.
+**Discord:** `#server-card-wg`
 
-## Working on the schema
+### Scope
 
-```bash
-npm install
-npm run generate         # regenerates schema.json from schema.ts
-npm run validate         # runs all examples through ajv against schema.json
-npm run check            # asserts schema.json is in sync with schema.ts and tsc passes
-npm run format           # prettier write
-```
+- Server Card format and schema
+- Discovery mechanism (`.well-known` endpoints)
+- Cross-ecosystem coordination with the AI Card effort
 
-When you change `schema.ts`, always run `npm run generate` and commit the updated `schema.json` in the same commit. CI runs `npm run check` and will fail if they drift.
+### Out of scope
 
-## Schema URL conventions
+- Changes to MCP initialization or transport
+- General-purpose registry (owned by the Registry Working Group)
+- Internationalization (i18n)
 
-The `$schema` field on every document MUST be a URL of the form:
+## Links
 
-```
-https://static.modelcontextprotocol.io/schemas/v1/<name>.schema.json
-```
-
-Schema URLs are versioned by their `vN` segment rather than by date, so additive revisions of the v1 shape don't bump every published document's `$schema`. Breaking changes would publish a `v2` family.
-
-## Graduation plan
-
-When the SEP is accepted and Server Cards graduate from this experimental extension:
-
-1. The contents of `schema.ts` in this repo move into `schema/draft/schema.ts` of [`modelcontextprotocol/modelcontextprotocol`](https://github.com/modelcontextprotocol/modelcontextprotocol). The two `MetaObject` and `Icon` definitions inlined here at the bottom of `schema.ts` already exist in the main spec and are dropped from the migration.
-2. The main spec's existing `scripts/generate-schemas.ts` regenerates `schema/draft/schema.json` (and downstream `docs/specification/draft/schema.mdx`) — no per-extension generator is required there.
-3. Published documents update their `$schema` to point at the main spec's hosted schema URL (e.g., `https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json` served from `modelcontextprotocol/static`).
-4. This repository is archived with a pointer to the relevant section of `schema/draft/schema.ts` in the main spec.
-
-The `schema.ts` in this repo is deliberately structured to be copy-pasted into the main spec's `schema/draft/schema.ts` with no transformation other than removing the inlined `MetaObject` / `Icon` definitions.
-
-## References
-
-- [SEP-2127: MCP Server Cards (PR)](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127)
-- [SEP-2133: Extensions framework (PR)](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2133)
-- Abandoned core spec PR (superseded by this repo): [modelcontextprotocol#2652](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2652)
-- [MCP Registry `server.json` schema](https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/server-json/generic-server-json.md)
+- [SEP-2127 — Server Card Specification PR](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127)
+- [MCP Specification Repository](https://github.com/modelcontextprotocol/modelcontextprotocol)
+- [Working Group Charter (PR #2480)](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2480)
+- [Extensions Overview](https://modelcontextprotocol.io/extensions/overview)

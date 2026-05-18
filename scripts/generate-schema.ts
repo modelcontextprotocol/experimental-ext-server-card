@@ -3,6 +3,7 @@
 import { exec } from "child_process";
 import { readFileSync, writeFileSync } from "fs";
 import { promisify } from "util";
+import prettier from "prettier";
 
 const execAsync = promisify(exec);
 
@@ -31,7 +32,9 @@ async function generate(): Promise<string> {
   const { stdout } = await execAsync(
     `npx typescript-json-schema --defaultNumberType integer --required --skipLibCheck "${SCHEMA_TS}" "*"`,
   );
-  return applyJsonSchema202012Transformations(stdout).trim() + "\n";
+  const transformed = applyJsonSchema202012Transformations(stdout);
+  const config = (await prettier.resolveConfig(SCHEMA_JSON)) ?? {};
+  return prettier.format(transformed, { ...config, filepath: SCHEMA_JSON });
 }
 
 async function main(): Promise<void> {

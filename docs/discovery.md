@@ -1,99 +1,76 @@
-# MCP Catalog Discovery Specification
+# Discovery
 
-**Status:** Draft
+**Protocol Revision**: draft
 
-## Overview
+MCP defines a discovery mechanism that enables clients to find available MCP servers on a
+domain without prior configuration. This mechanism complements the lifecycle handshake by
+answering _where_ to connect, before the protocol establishes _how_ to communicate.
 
-An **MCP Catalog** is a JSON document published by an organization to advertise the [MCP Server Cards](#mcp-server-card) relevant to its services, enabling config-free auto-discovery by MCP clients. It is a minimal, MCP-scoped subset of the [AI Catalog](https://github.com/Agent-Card/ai-catalog) specification.
+## MCP Catalog
 
-The catalog MAY reference servers operated on web hosts different from the one serving the catalog itself — for example, `acme.org/.well-known/mcp/catalog.json` MAY advertise servers operated by `mcp-server-host-saas.com` on Acme's behalf. The catalog represents the organization's curated set of advertised servers, regardless of which web host actually serves them.
+An **MCP Catalog** is a JSON document published by an organization to advertise the
+[MCP Server Cards](#mcp-server-cards) relevant to its services.
 
-> **Note on terminology:** Throughout this spec, "MCP server" refers to a Model Context Protocol server (the MCP-client sense). When this document needs to refer to the operator of a web endpoint or the machine serving HTTP requests, it uses "web host" or "operator" instead, to avoid ambiguity.
+The catalog MAY reference servers on different domains than the catalog itself — for
+example, `acme.org/.well-known/...` MAY advertise servers operated by
+`mcp-server-host-saas.com` on Acme's behalf. Clients can fetch this document to discover
+servers and then retrieve individual [Server Cards](#mcp-server-cards) for connection
+details.
 
-## Publishing Recommendation
+The MCP Catalog format is a minimal, MCP-scoped subset of the
+[AI Catalog](https://github.com/Agent-Card/ai-catalog) specification. This alignment
+ensures that MCP Catalog entries can be used as-is within a full AI Catalog document,
+enabling a smooth migration path when the cross-protocol AI Catalog standard is finalized.
 
-Organizations offering services accessible via MCP SHOULD publish an MCP Catalog at the domain users associate with the service. The MCP Catalog SHOULD live at:
+### Well-Known URI
+
+Organizations offering services accessible via MCP SHOULD publish an MCP Catalog at the
+domain users associate with the service. The MCP Catalog should live at:
 
 ```
 /.well-known/mcp/catalog.json
 ```
 
-## Well-Known URI
-
-```
-/.well-known/mcp/catalog.json
-```
-
-The catalog endpoint:
+This endpoint:
 
 - MUST be accessible via HTTPS (HTTP MAY be supported for local/development use)
-- MUST return `Content-Type: application/json`
-- MUST include appropriate CORS headers (see [Security Considerations](#security-considerations))
-- SHOULD include appropriate caching headers (see [Security Considerations](#security-considerations))
+- MUST include appropriate CORS headers (see [CORS Requirements](#cors-requirements))
+- SHOULD include appropriate caching headers (see [Caching](#caching))
 
-## Catalog Format
+### Catalog Format
 
-The catalog is a JSON object with the following top-level members:
+An MCP Catalog document is a JSON object that MUST contain the following members:
 
-| Field         | Type   | Required | Description                                                                         |
-| ------------- | ------ | -------- | ----------------------------------------------------------------------------------- |
-| `specVersion` | string | No       | Version of the MCP Catalog format. Currently `"draft"` when present. See note below. |
-| `entries`     | array  | Yes      | Array of [Catalog Entry](#catalog-entry) objects. MAY be empty.                     |
+| Member        | Type   | Required | Description                                                 |
+| :------------ | :----- | :------- | :---------------------------------------------------------- |
+| `specVersion` | string | Yes      | The version of the MCP Catalog format (currently `"draft"`) |
+| `entries`     | array  | Yes      | An array of Catalog Entry objects. This array MAY be empty. |
 
-> **Note on `specVersion`:** The upstream [AI Catalog](https://github.com/Agent-Card/ai-catalog) currently requires `specVersion`. This spec deliberately makes it OPTIONAL so that a minimal catalog can simply be `{"entries": [...]}`. We intend to push the AI Catalog to align by making `specVersion` optional there as well.
+#### Catalog Entry
 
-## Catalog Entry
+Each entry in the `entries` array describes a single MCP server and MUST contain:
 
-Each entry in the `entries` array is a JSON object with exactly three required fields:
+| Member        | Type   | Required | Description                                                                      |
+| :------------ | :----- | :------- | :------------------------------------------------------------------------------- |
+| `identifier`  | string | Yes      | A URN identifying this server (e.g., `urn:mcp:server:com.example/weather`)       |
+| `displayName` | string | Yes      | A human-readable name for the server                                             |
+| `mediaType`   | string | Yes      | The media type of the referenced artifact. MUST be `application/mcp-server+json` |
+| `url`         | string | Yes      | URL where the full [Server Card](#mcp-server-cards) can be retrieved             |
 
-| Field        | Type   | Required | Description                                                                  |
-| ------------ | ------ | -------- | ---------------------------------------------------------------------------- |
-| `identifier` | string | Yes      | A URN identifying this server. See [Identifier](#identifier) below.          |
-| `mediaType`  | string | Yes      | MUST be `application/mcp-server+json`. See [MCP Server Card](#mcp-server-card). |
-| `url`        | string | Yes      | URL where the full [MCP Server Card](#mcp-server-card) can be retrieved.     |
+The `identifier` MUST begin with `urn:mcp:server:` and end with the `name` value of the
+referenced Server Card, with no characters in between.
 
-All metadata (name, description, capabilities, etc.) lives in the [MCP Server Card](#mcp-server-card) itself — the catalog entry intentionally carries no optional fields.
+### Example: Single Server
 
-### Identifier
-
-The `identifier` field MUST begin with the prefix `urn:mcp:server:`. The portion of the identifier after this prefix MUST exactly match the `name` value of the referenced [MCP Server Card](#mcp-server-card) (i.e., the `name` field in the server's `server.json`).
-
-Server `name` values SHOULD use reverse-DNS notation to ensure global uniqueness (e.g., `com.example/weather`). The full identifier then takes the form:
-
-```
-urn:mcp:server:<reverse-dns-name>
-```
-
-For example, a server whose `server.json` declares `"name": "com.example/weather"` MUST be referenced as `urn:mcp:server:com.example/weather`.
-
-## MCP Server Card
-
-An **MCP Server Card** is a JSON document describing a single MCP server: its name, capabilities, transport, authentication requirements, and other metadata needed for a client to connect. The detailed schema for MCP Server Cards is defined by [SEP-2127](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127); the rest of this section captures only what the MCP Catalog spec needs.
-
-### Media Type
-
-MCP Server Cards are identified by the media type:
-
-```
-application/mcp-server+json
-```
-
-A web host serving an MCP Server Card:
-
-- MUST return `Content-Type: application/mcp-server+json`
-- MUST include a `name` field whose value globally identifies the server (the same value referenced by the catalog's `identifier`, minus the `urn:mcp:server:` prefix — see [Identifier](#identifier))
-
-Clients fetching a URL from a catalog entry SHOULD validate that the returned `Content-Type` is `application/mcp-server+json` and that the document's `name` matches the catalog entry's `identifier`.
-
-## Examples
-
-### Single Server
+A domain hosting a single MCP server, using only the required fields:
 
 ```json
 {
+  "specVersion": "draft",
   "entries": [
     {
       "identifier": "urn:mcp:server:com.example/weather",
+      "displayName": "Weather Service",
       "mediaType": "application/mcp-server+json",
       "url": "https://example.com/.well-known/mcp-server-card"
     }
@@ -101,7 +78,9 @@ Clients fetching a URL from a catalog entry SHOULD validate that the returned `C
 }
 ```
 
-### Multiple Servers
+### Example: Multiple Servers
+
+A domain hosting several MCP servers, each with its own server card:
 
 ```json
 {
@@ -109,16 +88,19 @@ Clients fetching a URL from a catalog entry SHOULD validate that the returned `C
   "entries": [
     {
       "identifier": "urn:mcp:server:com.acme/code-review",
+      "displayName": "Code Review Assistant",
       "mediaType": "application/mcp-server+json",
       "url": "https://acme.com/.well-known/mcp-server-card/code-review"
     },
     {
       "identifier": "urn:mcp:server:com.acme/docs-search",
+      "displayName": "Documentation Search",
       "mediaType": "application/mcp-server+json",
       "url": "https://acme.com/.well-known/mcp-server-card/docs-search"
     },
     {
       "identifier": "urn:mcp:server:com.acme/ci-cd",
+      "displayName": "CI/CD Pipeline",
       "mediaType": "application/mcp-server+json",
       "url": "https://acme.com/.well-known/mcp-server-card/ci-cd"
     }
@@ -126,74 +108,75 @@ Clients fetching a URL from a catalog entry SHOULD validate that the returned `C
 }
 ```
 
-### Cross-Host Advertising
-
-An organization MAY advertise servers operated by a third party on its behalf:
-
-```json
-{
-  "entries": [
-    {
-      "identifier": "urn:mcp:server:org.acme/support",
-      "mediaType": "application/mcp-server+json",
-      "url": "https://mcp-server-host-saas.com/acme/support/.well-known/mcp-server-card"
-    }
-  ]
-}
-```
-
-Here, `acme.org/.well-known/mcp/catalog.json` advertises a server whose card is served by `mcp-server-host-saas.com`. The `identifier` remains scoped to Acme because Acme is the organization advertising the server.
-
 ## Client Discovery Flow
 
+Clients performing domain-level discovery SHOULD follow this procedure:
+
 ```mermaid
-sequenceDiagram
-    participant Client
-    participant Domain
-    participant ServerCard
-
-    Client->>Domain: GET https://{domain}/.well-known/mcp/catalog.json
-    Domain-->>Client: 200 OK (application/json)
-
-    alt Valid catalog returned
-        Client->>Client: Parse entries array
-        loop For each entry
-            Client->>Client: Validate mediaType = application/mcp-server+json
-            alt Recognized media type
-                Client->>ServerCard: GET entry.url
-                ServerCard-->>Client: MCP Server Card (application/mcp-server+json)
-                Client->>Client: Validate card.name matches identifier
-                Client->>Client: Use server card to configure connection
-            else Unrecognized media type
-                Client->>Client: Ignore entry
-            end
-        end
-    else Error or invalid response
-        Client->>Client: Fall back to other discovery methods
-    end
+flowchart TD
+    A[Client wants to discover MCP servers on example.com] --> B[Fetch /.well-known/mcp/catalog.json]
+    B --> C{Valid catalog returned?}
+    C -->|Yes| D[Parse entries array]
+    C -->|No| E[Discovery unavailable for this domain]
+    D --> F[For each entry, fetch server card from url]
+    F --> G[Use server card to configure connection]
 ```
 
-Clients SHOULD validate that each entry has `mediaType` set to `application/mcp-server+json` and MUST ignore entries with unrecognized media types. This ensures forward compatibility as new entry types are introduced.
+1. Fetch `https://{domain}/.well-known/mcp/catalog.json`
+2. If a valid MCP Catalog is returned, iterate over the `entries` array
+3. For each entry, retrieve the server card from the entry's `url`
+4. Use the server card metadata to configure and establish an MCP connection
+
+Clients SHOULD validate that each entry has `mediaType` set to `application/mcp-server+json`
+and ignore entries with unrecognized media types.
+
+## MCP Server Cards
+
+An **MCP Server Card** is a JSON document that describes a single MCP server — its
+identity, capabilities, and connection details. Server Cards use the media type
+`application/mcp-server+json`.
+
+A Server Card includes:
+
+- **`name`** — A unique identifier for the server in reverse DNS format (e.g., `com.example/weather`)
+- **Connection details** — Transport type and endpoint URL
+- **Capabilities** — Tools, resources, and prompts the server offers
+- **Metadata** — Human-readable name, description, and version
+
+For the full Server Card specification, see
+[SEP-2127: MCP Server Cards](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127).
 
 ## Relationship to AI Catalog
 
-The MCP Catalog is a transitional mechanism designed to provide immediate value while the broader [AI Catalog](https://github.com/Agent-Card/ai-catalog) specification matures.
+The MCP Catalog is designed as a transitional mechanism. The
+[AI Catalog](https://github.com/Agent-Card/ai-catalog) specification defines a
+cross-protocol discovery standard (`/.well-known/ai-catalog.json`) capable of indexing
+MCP servers, A2A agents, and other AI artifacts.
 
-- **Structural compatibility:** MCP Catalog entries are structurally compatible with AI Catalog entries. Each entry uses the same `identifier`, `mediaType`, and `url` fields.
-- **Dual serving:** Organizations MAY serve both `/.well-known/mcp/catalog.json` and the AI Catalog well-known URI during the transition period. The same entries can be used in both documents.
-- **Direct inclusion:** MCP Catalog entries can be included directly in an AI Catalog document without modification. No field mapping or transformation is required.
+MCP Catalog entries are structurally compatible with AI Catalog entries. When the AI
+Catalog standard is finalized and adopted by the MCP steering committee:
 
-As the AI Catalog specification stabilizes, implementers SHOULD plan for eventual migration to the unified catalog format.
+1. Domains MAY serve both `/.well-known/mcp/catalog.json` and `/.well-known/ai-catalog.json`
+   during a transition period
+2. MCP Catalog entries can be included directly in an AI Catalog document without
+   modification
+3. Domains that want richer metadata (trust manifests, publisher identity, collections)
+   can adopt the full AI Catalog format
 
 ## Security Considerations
 
 ### Information Disclosure
 
-Catalog entries MUST NOT include sensitive information. The catalog is a public discovery document — all fields are intended to be world-readable.
+MCP Catalogs are publicly accessible by design. Catalog entries MUST NOT include sensitive
+information such as:
+
+- Authentication credentials or tokens
+- Internal network topology or private endpoints
+- Proprietary business logic
 
 ### CORS Requirements
 
-The catalog endpoint MUST include the following CORS headers to enable browser-based clients:
+Discovery endpoints MUST include appropriate CORS headers to allow browser-based clients:
 
 ```
 Access-Control-Allow-Origin: *
@@ -201,9 +184,11 @@ Access-Control-Allow-Methods: GET
 Access-Control-Allow-Headers: Content-Type
 ```
 
+This is safe because MCP Catalogs contain only public metadata and are read-only.
+
 ### Caching
 
-The catalog endpoint SHOULD include caching headers to reduce unnecessary requests:
+Servers SHOULD include caching headers to reduce unnecessary requests:
 
 ```
 Cache-Control: public, max-age=3600
@@ -211,14 +196,5 @@ Cache-Control: public, max-age=3600
 
 ### Transport Security
 
-The catalog MUST be served over HTTPS with TLS 1.2 or later in production environments. HTTP MAY be used for local development and testing only.
-
-### Cross-Host Trust
-
-Because a catalog MAY reference [MCP Server Cards](#mcp-server-card) hosted on a different web host than the catalog itself, clients SHOULD treat the publishing domain of the catalog as the authority for which servers an organization endorses. Clients SHOULD surface the catalog's origin to users when presenting the advertised servers.
-
-## References
-
-- [SEP-2127: MCP Server Cards](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127) — full schema for the [MCP Server Card](#mcp-server-card) document referenced by catalog entries.
-- [Server Card Working Group Discussion](https://github.com/modelcontextprotocol/modelcontextprotocol/discussions/2563)
-- [AI Catalog Specification](https://github.com/Agent-Card/ai-catalog)
+MCP Catalogs MUST be served over HTTPS (TLS 1.2 or later) in production. HTTP MAY be
+used for local development only.

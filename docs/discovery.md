@@ -50,12 +50,12 @@ An MCP Catalog document is a JSON object that MUST contain the following members
 
 Each entry in the `entries` array describes a single MCP server and MUST contain:
 
-| Member        | Type   | Required | Description                                                                      |
-| :------------ | :----- | :------- | :------------------------------------------------------------------------------- |
-| `identifier`  | string | Yes      | A URN identifying this server (e.g., `urn:mcp:server:com.example/weather`)       |
-| `displayName` | string | Yes      | A human-readable name for the server                                             |
+| Member        | Type   | Required | Description                                                                           |
+| :------------ | :----- | :------- | :------------------------------------------------------------------------------------ |
+| `identifier`  | string | Yes      | A URN identifying this server (e.g., `urn:mcp:server:com.example/weather`)            |
+| `displayName` | string | Yes      | A human-readable name for the server                                                  |
 | `mediaType`   | string | Yes      | The media type of the referenced artifact. MUST be `application/mcp-server-card+json` |
-| `url`         | string | Yes      | URL where the full [Server Card](#mcp-server-cards) can be retrieved             |
+| `url`         | string | Yes      | URL where the full [Server Card](#mcp-server-cards) can be retrieved                  |
 
 The `identifier` MUST begin with `urn:mcp:server:` and end with the `name` value of the
 referenced Server Card, with no characters in between.

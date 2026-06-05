@@ -133,14 +133,16 @@ and ignore entries with unrecognized media types.
 ## MCP Server Cards
 
 An **MCP Server Card** is a JSON document that describes a single MCP server — its
-identity, capabilities, and connection details. Server Cards use the media type
+identity and connection details. Server Cards use the media type
 `application/mcp-server+json`.
+
+Server Cards do not enumerate primitives (tools, resources, prompts); those remain
+subject to runtime listing via the protocol's standard list operations.
 
 A Server Card includes:
 
 - **`name`** — A unique identifier for the server in reverse DNS format (e.g., `com.example/weather`)
 - **Connection details** — Transport type and endpoint URL
-- **Capabilities** — Tools, resources, and prompts the server offers
 - **Metadata** — Human-readable name, description, and version
 
 For the full Server Card specification, see

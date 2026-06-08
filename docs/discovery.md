@@ -198,7 +198,9 @@ The following placements were considered and **not** recommended:
   sub-namespace relative to a server URL, and a capitalized `/MCP/` matches nothing in the
   ecosystem. Nesting under `/mcp/` collides conceptually with "the JSON-RPC endpoint" and
   creates ambiguity about whether the path is relative to the server URL or the domain
-  root.
+  root. (This is distinct from a server that simply happens to live at `https://host/mcp`:
+  there, `https://host/mcp/server-card` is just `<streamable-http-url>` + `/server-card` —
+  the recommended convention — not a domain-root `/mcp/` metadata namespace.)
 
 ## Relationship to AI Catalog
 

@@ -152,24 +152,22 @@ For the full Server Card specification, see
 
 ### Consistency with Runtime Behavior
 
-A Server Card is fetched _before_ the client connects to the server, so its contents are
-unverified at the time a client reads them. A Server Card SHOULD accurately reflect the
-server's actual runtime behavior: the identity and connection metadata a client observes
-once connected — for example, the `serverInfo` (`name`, `version`) and `supportedVersions`
-returned by [`server/discover`](https://modelcontextprotocol.io/specification/draft/server/discover),
-and the transport actually served at each `remotes[]` endpoint — SHOULD NOT contradict the
-equivalent values declared in the Server Card. Descriptive fields (`title`, `description`,
-`icons`) SHOULD likewise be consistent with what the server presents at runtime.
+A Server Card is fetched _before_ the client connects, so its contents are unverified when
+read. A Server Card SHOULD accurately reflect the server's runtime behavior: the values a
+client observes once connected — the `serverInfo` (`name`, `version`) and `supportedVersions`
+from [`server/discover`](https://modelcontextprotocol.io/specification/draft/server/discover),
+the transport served at each `remotes[]` endpoint, and descriptive fields (`title`,
+`description`, `icons`) — SHOULD NOT contradict the equivalent values declared in the Server
+Card.
 
-This mirrors the reasoning behind the Server Card's deliberate omission of primitives
-(tools, resources, prompts): because a static manifest can drift from runtime, the Server
-Card describes only identity, transport, and protocol versions, and even those declarations
-are advisory rather than binding. Accordingly:
+As with the deliberately omitted primitives (tools, resources, prompts), a static manifest
+can drift from runtime, so even the fields a Server Card does declare are advisory rather
+than binding. Accordingly:
 
 - Clients MUST NOT treat Server Card contents as authoritative for security or
   access-control decisions.
-- Clients SHOULD verify a Server Card's claims against the live connection after
-  connecting, and SHOULD prefer the values observed at runtime where the two disagree.
+- Clients SHOULD verify a Server Card's claims against the live connection, preferring the
+  runtime values where the two disagree.
 
 ### Server Card Location
 
@@ -256,16 +254,14 @@ information such as:
 
 ### Server Card Accuracy
 
-Because a Server Card is consumed before the client connects, an inaccurate Server Card —
-whether stale or deliberately crafted — is a mild confusion or downgrade vector. A Server
-Card that overstates transport or protocol-version support, or otherwise misrepresents the
-server's identity, can steer a client toward a weaker configuration or a misidentified
-server before it has connected and observed the server's actual `server/discover` response.
-This is why the consistency requirement is partly a security property and not merely a
-matter of correctness. The normative protections against it live in
+A Server Card is consumed before the client connects, so an inaccurate one — stale or
+deliberately crafted — is a mild confusion or downgrade vector: one that overstates
+transport or protocol-version support, or misrepresents the server's identity, can steer a
+client toward a weaker configuration or the wrong server before it observes the actual
+`server/discover` response. This makes the consistency requirement partly a security
+property, not merely a matter of correctness. The normative protections live in
 [Consistency with Runtime Behavior](#consistency-with-runtime-behavior): clients do not
-treat a Server Card as authoritative and reconcile it against the live connection once
-established.
+treat a Server Card as authoritative and reconcile it against the live connection.
 
 ### CORS Requirements
 

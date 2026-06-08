@@ -21,6 +21,13 @@
  * They do not enumerate primitives (tools, resources, prompts) — those remain
  * subject to runtime listing via the protocol's standard list operations.
  *
+ * The fields a Server Card does declare (identity, transport, protocol
+ * versions) are advisory, not authoritative: they SHOULD be consistent with
+ * what a client observes at runtime (e.g. the server's `server/discover`
+ * response), and clients MUST NOT treat them as authoritative for security
+ * decisions. See "Consistency with Runtime Behavior" in docs/discovery.md for
+ * the normative requirement.
+ *
  * The companion {@link Server} shape is a strict superset that adds local
  * package metadata for use cases like the MCP Registry's `server.json`.
  *

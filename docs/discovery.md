@@ -50,12 +50,12 @@ An MCP Catalog document is a JSON object that MUST contain the following members
 
 Each entry in the `entries` array describes a single MCP server and MUST contain:
 
-| Member        | Type   | Required | Description                                                                      |
-| :------------ | :----- | :------- | :------------------------------------------------------------------------------- |
-| `identifier`  | string | Yes      | A URN identifying this server (e.g., `urn:mcp:server:com.example/weather`)       |
-| `displayName` | string | Yes      | A human-readable name for the server                                             |
-| `mediaType`   | string | Yes      | The media type of the referenced artifact. MUST be `application/mcp-server+json` |
-| `url`         | string | Yes      | URL where the full [Server Card](#mcp-server-cards) can be retrieved             |
+| Member        | Type   | Required | Description                                                                           |
+| :------------ | :----- | :------- | :------------------------------------------------------------------------------------ |
+| `identifier`  | string | Yes      | A URN identifying this server (e.g., `urn:mcp:server:com.example/weather`)            |
+| `displayName` | string | Yes      | A human-readable name for the server                                                  |
+| `mediaType`   | string | Yes      | The media type of the referenced artifact. MUST be `application/mcp-server-card+json` |
+| `url`         | string | Yes      | URL where the full [Server Card](#mcp-server-cards) can be retrieved                  |
 
 The `identifier` MUST begin with `urn:mcp:server:` and end with the `name` value of the
 referenced Server Card, with no characters in between.
@@ -71,7 +71,7 @@ A domain hosting a single MCP server, using only the required fields:
     {
       "identifier": "urn:mcp:server:com.example/weather",
       "displayName": "Weather Service",
-      "mediaType": "application/mcp-server+json",
+      "mediaType": "application/mcp-server-card+json",
       "url": "https://example.com/mcp/server-card"
     }
   ]
@@ -89,19 +89,19 @@ A domain hosting several MCP servers, each with its own server card:
     {
       "identifier": "urn:mcp:server:com.acme/code-review",
       "displayName": "Code Review Assistant",
-      "mediaType": "application/mcp-server+json",
+      "mediaType": "application/mcp-server-card+json",
       "url": "https://acme.com/code-review/server-card"
     },
     {
       "identifier": "urn:mcp:server:com.acme/docs-search",
       "displayName": "Documentation Search",
-      "mediaType": "application/mcp-server+json",
+      "mediaType": "application/mcp-server-card+json",
       "url": "https://acme.com/docs-search/server-card"
     },
     {
       "identifier": "urn:mcp:server:com.acme/ci-cd",
       "displayName": "CI/CD Pipeline",
-      "mediaType": "application/mcp-server+json",
+      "mediaType": "application/mcp-server-card+json",
       "url": "https://acme.com/ci-cd/server-card"
     }
   ]
@@ -129,20 +129,22 @@ flowchart TD
    [Server Card Location](#server-card-location))
 4. Use the server card metadata to configure and establish an MCP connection
 
-Clients SHOULD validate that each entry has `mediaType` set to `application/mcp-server+json`
+Clients SHOULD validate that each entry has `mediaType` set to `application/mcp-server-card+json`
 and ignore entries with unrecognized media types.
 
 ## MCP Server Cards
 
 An **MCP Server Card** is a JSON document that describes a single MCP server — its
-identity, capabilities, and connection details. Server Cards use the media type
-`application/mcp-server+json`.
+identity and connection details. Server Cards use the media type
+`application/mcp-server-card+json`.
+
+Server Cards do not enumerate primitives (tools, resources, prompts); those remain
+subject to runtime listing via the protocol's standard list operations.
 
 A Server Card includes:
 
 - **`name`** — A unique identifier for the server in reverse DNS format (e.g., `com.example/weather`)
 - **Connection details** — Transport type and endpoint URL
-- **Capabilities** — Tools, resources, and prompts the server offers
 - **Metadata** — Human-readable name, description, and version
 
 For the full Server Card specification, see

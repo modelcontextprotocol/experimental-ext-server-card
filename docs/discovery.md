@@ -150,6 +150,25 @@ A Server Card includes:
 For the full Server Card specification, see
 [SEP-2127: MCP Server Cards](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127).
 
+### Consistency with Runtime Behavior
+
+A Server Card is fetched _before_ the client connects, so its contents are unverified when
+read. A Server Card SHOULD accurately reflect the server's runtime behavior: the values a
+client observes once connected — the `serverInfo` (`name`, `version`) and `supportedVersions`
+from [`server/discover`](https://modelcontextprotocol.io/specification/draft/server/discover),
+the transport served at each `remotes[]` endpoint, and descriptive fields (`title`,
+`description`, `icons`) — SHOULD NOT contradict the equivalent values declared in the Server
+Card.
+
+As with the deliberately omitted primitives (tools, resources, prompts), a static manifest
+can drift from runtime, so even the fields a Server Card does declare are advisory rather
+than binding. Accordingly:
+
+- Clients MUST NOT treat Server Card contents as authoritative for security or
+  access-control decisions.
+- Clients SHOULD verify a Server Card's claims against the live connection, preferring the
+  runtime values where the two disagree.
+
 ### Server Card Location
 
 The Catalog is the discovery entrypoint, and every Catalog Entry already carries the
@@ -232,6 +251,17 @@ information such as:
 - Authentication credentials or tokens
 - Internal network topology or private endpoints
 - Proprietary business logic
+
+### Server Card Accuracy
+
+A Server Card is consumed before the client connects, so an inaccurate one — stale or
+deliberately crafted — is a mild confusion or downgrade vector: one that overstates
+transport or protocol-version support, or misrepresents the server's identity, can steer a
+client toward a weaker configuration or the wrong server before it observes the actual
+`server/discover` response. This makes the consistency requirement partly a security
+property, not merely a matter of correctness. The normative protections live in
+[Consistency with Runtime Behavior](#consistency-with-runtime-behavior): clients do not
+treat a Server Card as authoritative and reconcile it against the live connection.
 
 ### CORS Requirements
 

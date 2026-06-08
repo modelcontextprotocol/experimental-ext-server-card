@@ -160,10 +160,10 @@ Server Card MAY be hosted at any unreserved URI.
 To give servers a predictable default, MCP reserves one location:
 
 > MCP Servers MAY host their Server Card at `GET <streamable-http-url>/server-card`,
-> which we reserve for this purpose, though any unreserved URI is valid. MCP Servers
-> SHOULD respect the `application/mcp-server-card+json` media type wherever they choose
-> to host it. After a client identifies a Server Card URL from an AI Catalog or MCP
-> Catalog, it SHOULD request that URL expressing the `application/mcp-server-card+json`
+> which we reserve for this purpose, though any unreserved URI (on any domain) is valid.
+> MCP Servers SHOULD respect the `application/mcp-server-card+json` media type wherever
+> they choose to host it. After a client identifies a Server Card URL from an AI Catalog
+> or MCP Catalog, it SHOULD request that URL expressing the `application/mcp-server-card+json`
 > media type.
 
 Concretely:

@@ -159,13 +159,14 @@ To give servers a predictable default, MCP reserves one location:
 
 > MCP Servers MAY host their Server Card at `GET <streamable-http-url>/server-card`,
 > which we reserve for this purpose, though any unreserved URI is valid. MCP Servers
-> SHOULD respect the agreed media type wherever they choose to host it. After a client
-> identifies a Server Card URL from an AI Catalog or MCP Catalog, it SHOULD request that
-> URL expressing the Server Card media type.
+> SHOULD respect the `application/mcp-server-card+json` media type wherever they choose
+> to host it. After a client identifies a Server Card URL from an AI Catalog or MCP
+> Catalog, it SHOULD request that URL expressing the `application/mcp-server-card+json`
+> media type.
 
 Concretely:
 
-- A client requesting a Server Card SHOULD send `Accept: application/mcp-server+json`
+- A client requesting a Server Card SHOULD send `Accept: application/mcp-server-card+json`
   on the GET request. (`Accept` is the representation-negotiation header for a GET; the
   server echoes the negotiated type back in the response `Content-Type`.)
 - The `/server-card` suffix is appended to the server's **streamable-HTTP URL**, not to

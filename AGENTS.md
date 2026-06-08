@@ -4,20 +4,20 @@ Operating manual for AI coding agents working in this repository. For full domai
 
 ## What this repo is, in one line
 
-The TypeScript source-of-truth (`schema.ts`) and generated JSON Schema 2020-12 (`schema.json`) for **MCP Server Cards**, an **experimental** extension tracking [SEP-2127](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127). It is a temporary incubator: when the SEP is accepted, the schema migrates into the main `modelcontextprotocol/modelcontextprotocol` repo and this repo is archived (see the README's "Graduation plan").
+The TypeScript source-of-truth (`schema.ts`) and generated JSON Schema 2020-12 (`schema.json`) for **MCP Server Cards**, an **experimental** extension tracking [SEP-2127](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127). It is a temporary incubator: when the SEP is accepted, the schema is expected to migrate into the main `modelcontextprotocol/modelcontextprotocol` repo and this repo to be archived (see the README's "Graduation plan").
 
 ## Layout
 
-See [`README.md` → Layout](./README.md#layout). The essentials: `schema.ts` is the only place to make schema changes; `schema.json` is **generated** and checked in; `scripts/` holds the generator and the example validator; `examples/` holds valid/invalid `ServerCard` and `Server` documents that double as the test suite.
+See [`README.md` → Layout](./README.md#layout). The essentials: `schema.ts` is the only place to make schema changes; `schema.json` is **generated** and checked in; `scripts/` holds the generator and the example validator; `examples/` holds `ServerCard` and `Server` example documents (valid and invalid) that double as the test suite.
 
 ## Working in this repo
 
 Follow the README's "Working on the schema" section. The non-negotiables:
 
 - **`schema.ts` is the source of truth. Never hand-edit `schema.json`** — regenerate it with `npm run generate` and commit the result **in the same commit** as the `schema.ts` change. CI runs `npm run check` and fails on drift.
-- **Cover behavior changes with examples.** Add/update documents under `examples/ServerCard/{valid,invalid}` (and `examples/Server/...` where relevant) so `npm run validate` exercises the change.
+- **Cover behavior changes with examples.** Add/update documents under `examples/ServerCard/{valid,invalid}` (and the parallel `examples/Server/` directories where relevant) so `npm run validate` exercises the change.
 - **Match conventions.** The `$schema` field on documents follows the versioned `https://static.modelcontextprotocol.io/schemas/v1/<name>.schema.json` pattern (README → "Schema URL conventions"). Run `npm run format` before committing.
-- Before pushing, run `npm run check` and `npm run validate` locally to reproduce CI.
+- Before pushing, run `npm run check`, `npm run validate`, and `npm run format:check` locally to reproduce CI.
 
 ## Core principles
 
@@ -25,7 +25,7 @@ Ordered most-important first.
 
 ### 1. Open PRs for human review — do not self-merge agent-generated changes
 
-Agent-driven work here opens a pull request and hands it back to a human maintainer to review and merge. Even when the account running the agent has merge permissions, **do not merge your own AI-generated PRs** (and do not enable auto-merge). The decision to merge belongs to a human.
+Agent-driven changes should be opened as a pull request for a human maintainer to review and merge. Even when the account running the agent has merge permissions, **do not merge your own AI-generated PRs** (and do not enable auto-merge). The decision to merge belongs to a human.
 
 ### 2. Stay small, scoped, and conservative
 

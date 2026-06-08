@@ -11,7 +11,10 @@
 
 /**
  * A static metadata document describing a remote MCP server, suitable for
- * publishing at a `.well-known/mcp-server-card` URI for pre-connection discovery.
+ * pre-connection discovery. A Server Card MAY be hosted at any unreserved URI;
+ * MCP reserves `GET <streamable-http-url>/server-card` as the recommended
+ * location. Clients learn a card's URL from an MCP/AI Catalog rather than
+ * guessing it.
  *
  * Server Cards intentionally describe only what is needed to discover and
  * connect to a remote server: identity, transport, and protocol versions.
@@ -126,8 +129,9 @@ export interface ServerCard {
  * packages. This is the shape used by the MCP Registry's `server.json`.
  *
  * `Server` documents are typically published to a registry rather than served
- * from a `.well-known` URI, since they may include instructions for installing
- * and executing a server on a client's local machine.
+ * from a Server Card URI (e.g., `<streamable-http-url>/server-card`), since they
+ * may include instructions for installing and executing a server on a client's
+ * local machine.
  *
  * @see [SEP-2127: MCP Server Cards](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127)
  * @category Server Cards

@@ -10,7 +10,7 @@ A prior attempt to land these types directly in the core spec ([modelcontextprot
 
 ## What is a Server Card?
 
-A **Server Card** is a JSON document, typically published at `https://<host>/.well-known/mcp/server-card`, describing:
+A **Server Card** is a JSON document — hosted at any unreserved URI, with `GET <streamable-http-url>/server-card` reserved as the recommended location (see [discovery.md](docs/discovery.md)) — describing:
 
 - The server's identity (`name`, `version`, `description`, optional `title` / `icons` / `repository` / `websiteUrl`)
 - Its remote transport endpoints (URLs, headers, variable templates, supported protocol versions)

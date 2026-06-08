@@ -192,15 +192,15 @@ The following placements were considered and **not** recommended:
   This remains spec-_allowed_ (any unreserved URI is valid) but is explicitly **not
   recommended**; avoiding the overload of the connection-establishing endpoint is the
   primary motivation for reserving a distinct `/server-card` suffix.
-- **Nesting under `/mcp/` or `/MCP/`** (e.g., `/mcp/server-card`). In MCP, `/mcp` denotes
+- **Nesting under a domain-root `/mcp/`** (e.g., `/mcp/server-card`). In MCP, `/mcp` denotes
   the _transport endpoint itself_ (canonical-URI examples: `https://mcp.example.com/mcp`,
   `https://mcp.example.com/server/mcp`). There is no precedent for `/mcp/` as a metadata
-  sub-namespace relative to a server URL, and a capitalized `/MCP/` matches nothing in the
-  ecosystem. Nesting under `/mcp/` collides conceptually with "the JSON-RPC endpoint" and
-  creates ambiguity about whether the path is relative to the server URL or the domain
-  root. (This is distinct from a server that simply happens to live at `https://host/mcp`:
-  there, `https://host/mcp/server-card` is just `<streamable-http-url>` + `/server-card` —
-  the recommended convention — not a domain-root `/mcp/` metadata namespace.)
+  sub-namespace relative to a server URL. Nesting under `/mcp/` collides conceptually with
+  "the JSON-RPC endpoint" and creates ambiguity about whether the path is relative to the
+  server URL or the domain root. (This is distinct from a server that simply happens to
+  live at `https://host/mcp`: there, `https://host/mcp/server-card` is just
+  `<streamable-http-url>` + `/server-card` — the recommended convention — not a domain-root
+  `/mcp/` metadata namespace.)
 
 ## Relationship to AI Catalog
 

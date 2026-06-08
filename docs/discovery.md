@@ -257,3 +257,9 @@ Cache-Control: public, max-age=3600
 
 MCP Catalogs MUST be served over HTTPS (TLS 1.2 or later) in production. HTTP MAY be
 used for local development only.
+
+### Denial of Service
+
+MCP Servers SHOULD implement rate limiting on their Server Card endpoint to prevent abuse.
+
+MCP Clients SHOULD respect `Cache-Control` headers and avoid unnecessary polling.

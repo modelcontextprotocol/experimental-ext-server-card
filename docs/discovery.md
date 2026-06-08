@@ -50,12 +50,12 @@ An MCP Catalog document is a JSON object that MUST contain the following members
 
 Each entry in the `entries` array describes a single MCP server and MUST contain:
 
-| Member        | Type   | Required | Description                                                                      |
-| :------------ | :----- | :------- | :------------------------------------------------------------------------------- |
-| `identifier`  | string | Yes      | A URN identifying this server (e.g., `urn:mcp:server:com.example/weather`)       |
-| `displayName` | string | Yes      | A human-readable name for the server                                             |
-| `mediaType`   | string | Yes      | The media type of the referenced artifact. MUST be `application/mcp-server+json` |
-| `url`         | string | Yes      | URL where the full [Server Card](#mcp-server-cards) can be retrieved             |
+| Member        | Type   | Required | Description                                                                           |
+| :------------ | :----- | :------- | :------------------------------------------------------------------------------------ |
+| `identifier`  | string | Yes      | A URN identifying this server (e.g., `urn:mcp:server:com.example/weather`)            |
+| `displayName` | string | Yes      | A human-readable name for the server                                                  |
+| `mediaType`   | string | Yes      | The media type of the referenced artifact. MUST be `application/mcp-server-card+json` |
+| `url`         | string | Yes      | URL where the full [Server Card](#mcp-server-cards) can be retrieved                  |
 
 The `identifier` MUST begin with `urn:mcp:server:` and end with the `name` value of the
 referenced Server Card, with no characters in between.
@@ -71,8 +71,8 @@ A domain hosting a single MCP server, using only the required fields:
     {
       "identifier": "urn:mcp:server:com.example/weather",
       "displayName": "Weather Service",
-      "mediaType": "application/mcp-server+json",
-      "url": "https://example.com/.well-known/mcp-server-card"
+      "mediaType": "application/mcp-server-card+json",
+      "url": "https://example.com/mcp/server-card"
     }
   ]
 }
@@ -89,20 +89,20 @@ A domain hosting several MCP servers, each with its own server card:
     {
       "identifier": "urn:mcp:server:com.acme/code-review",
       "displayName": "Code Review Assistant",
-      "mediaType": "application/mcp-server+json",
-      "url": "https://acme.com/.well-known/mcp-server-card/code-review"
+      "mediaType": "application/mcp-server-card+json",
+      "url": "https://acme.com/code-review/server-card"
     },
     {
       "identifier": "urn:mcp:server:com.acme/docs-search",
       "displayName": "Documentation Search",
-      "mediaType": "application/mcp-server+json",
-      "url": "https://acme.com/.well-known/mcp-server-card/docs-search"
+      "mediaType": "application/mcp-server-card+json",
+      "url": "https://acme.com/docs-search/server-card"
     },
     {
       "identifier": "urn:mcp:server:com.acme/ci-cd",
       "displayName": "CI/CD Pipeline",
-      "mediaType": "application/mcp-server+json",
-      "url": "https://acme.com/.well-known/mcp-server-card/ci-cd"
+      "mediaType": "application/mcp-server-card+json",
+      "url": "https://acme.com/ci-cd/server-card"
     }
   ]
 }
@@ -124,17 +124,19 @@ flowchart TD
 
 1. Fetch `https://{domain}/.well-known/mcp/catalog.json`
 2. If a valid MCP Catalog is returned, iterate over the `entries` array
-3. For each entry, retrieve the server card from the entry's `url`
+3. For each entry, retrieve the server card from the entry's `url`, expressing the
+   Server Card media type via the `Accept` header (see
+   [Server Card Location](#server-card-location))
 4. Use the server card metadata to configure and establish an MCP connection
 
-Clients SHOULD validate that each entry has `mediaType` set to `application/mcp-server+json`
+Clients SHOULD validate that each entry has `mediaType` set to `application/mcp-server-card+json`
 and ignore entries with unrecognized media types.
 
 ## MCP Server Cards
 
 An **MCP Server Card** is a JSON document that describes a single MCP server — its
 identity, capabilities, and connection details. Server Cards use the media type
-`application/mcp-server+json`.
+`application/mcp-server-card+json`.
 
 A Server Card includes:
 
@@ -145,6 +147,58 @@ A Server Card includes:
 
 For the full Server Card specification, see
 [SEP-2127: MCP Server Cards](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127).
+
+### Server Card Location
+
+The Catalog is the discovery entrypoint, and every Catalog Entry already carries the
+`url` where its Server Card can be retrieved. Clients therefore never need to _guess_ a
+Server Card's location — they follow the `url` the Catalog gives them. As a result, a
+Server Card MAY be hosted at any unreserved URI.
+
+To give servers a predictable default, MCP reserves one location:
+
+> MCP Servers MAY host their Server Card at `GET <streamable-http-url>/server-card`,
+> which we reserve for this purpose, though any unreserved URI is valid. MCP Servers
+> SHOULD respect the agreed media type wherever they choose to host it. After a client
+> identifies a Server Card URL from an AI Catalog or MCP Catalog, it SHOULD request that
+> URL expressing the Server Card media type.
+
+Concretely:
+
+- A client requesting a Server Card SHOULD send `Accept: application/mcp-server-card+json`
+  on the GET request. (`Accept` is the representation-negotiation header for a GET; the
+  server echoes the negotiated type back in the response `Content-Type`.)
+- The `/server-card` suffix is appended to the server's **streamable-HTTP URL**, not to
+  the domain root. A server that lives at `https://host/mcp` therefore naturally yields
+  `https://host/mcp/server-card` — you get path-namespacing for free without inventing a
+  separate convention.
+
+#### Alternatives considered
+
+The following placements were considered and **not** recommended:
+
+- **A `.well-known` URI** (e.g., `/.well-known/mcp/server-card`). `.well-known` is for
+  _site-wide_ metadata, whereas an individual server's card is _application-level_
+  metadata. Because the Catalog is the discovery entrypoint and already provides each
+  card's `url`, hosting the card under `.well-known` adds no value — the card can live
+  anywhere the Catalog points. (Note: `.well-known` remains correct for the **Catalog**
+  itself at `/.well-known/mcp/catalog.json` and for OAuth metadata such as
+  `/.well-known/oauth-protected-resource` — those are genuinely site-wide. This change
+  applies only to the single-server Server Card.)
+- **The bare streamable-HTTP endpoint** (`GET <streamable-http-url>` with no suffix).
+  In the Streamable HTTP transport a `GET` on the MCP endpoint already has a reserved
+  meaning — it opens the SSE stream. Serving the card there overloads that endpoint and
+  forces content negotiation to disambiguate "give me the card" from "open the stream."
+  This remains spec-_allowed_ (any unreserved URI is valid) but is explicitly **not
+  recommended**; avoiding the overload of the connection-establishing endpoint is the
+  primary motivation for reserving a distinct `/server-card` suffix.
+- **Nesting under `/mcp/` or `/MCP/`** (e.g., `/mcp/server-card`). In MCP, `/mcp` denotes
+  the _transport endpoint itself_ (canonical-URI examples: `https://mcp.example.com/mcp`,
+  `https://mcp.example.com/server/mcp`). There is no precedent for `/mcp/` as a metadata
+  sub-namespace relative to a server URL, and a capitalized `/MCP/` matches nothing in the
+  ecosystem. Nesting under `/mcp/` collides conceptually with "the JSON-RPC endpoint" and
+  creates ambiguity about whether the path is relative to the server URL or the domain
+  root.
 
 ## Relationship to AI Catalog
 

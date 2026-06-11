@@ -2,15 +2,14 @@
 
 /**
  * Validate the example documents under `examples/` against the generated
- * `schema.json`. Each example is run against either `#/$defs/ServerCard` or
- * `#/$defs/Server` based on the directory it lives under, and against the
- * schema's expected acceptance — `valid/` examples must validate cleanly,
- * `invalid/` examples must fail at least one constraint.
+ * `schema.json`. Each example is run against `#/$defs/ServerCard` and
+ * against the schema's expected acceptance — `valid/` examples must validate
+ * cleanly, `invalid/` examples must fail at least one constraint.
  */
 
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
-import { readdirSync, readFileSync, statSync } from "fs";
+import { readdirSync, readFileSync } from "fs";
 import { join } from "path";
 
 const SCHEMA_JSON = "schema.json";
@@ -41,17 +40,13 @@ function listJsonFiles(dir: string): string[] {
   }
 }
 
-function runDirectory(
-  ajv: Ajv2020,
-  defName: "ServerCard" | "Server",
-): Outcome[] {
-  const root = join(EXAMPLES_DIR, defName);
+function runServerCardExamples(ajv: Ajv2020): Outcome[] {
+  const root = join(EXAMPLES_DIR, "ServerCard");
   const outcomes: Outcome[] = [];
-  if (!safeIsDir(root)) return outcomes;
 
-  const validate = ajv.getSchema(`schema.json#/$defs/${defName}`);
+  const validate = ajv.getSchema(`schema.json#/$defs/ServerCard`);
   if (!validate) {
-    throw new Error(`Could not resolve ${defName} schema in ${SCHEMA_JSON}`);
+    throw new Error(`Could not resolve ServerCard schema in ${SCHEMA_JSON}`);
   }
 
   for (const expected of ["valid", "invalid"] as const) {
@@ -62,7 +57,7 @@ function runDirectory(
       const passed = expected === "valid" ? !!ok : !ok;
       const errors = validate.errors ?? [];
       outcomes.push({
-        name: `${defName}/${expected}/${file.split("/").pop()}`,
+        name: `ServerCard/${expected}/${file.split("/").pop()}`,
         expected,
         passed,
         message: passed
@@ -79,24 +74,13 @@ function runDirectory(
   return outcomes;
 }
 
-function safeIsDir(p: string): boolean {
-  try {
-    return statSync(p).isDirectory();
-  } catch {
-    return false;
-  }
-}
-
 function main(): void {
   const ajv = loadSchema();
-  const outcomes = [
-    ...runDirectory(ajv, "ServerCard"),
-    ...runDirectory(ajv, "Server"),
-  ];
+  const outcomes = runServerCardExamples(ajv);
 
   if (outcomes.length === 0) {
-    console.log(`No examples found under ${EXAMPLES_DIR}/. Skipping.`);
-    return;
+    console.error(`No examples found under ${EXAMPLES_DIR}/.`);
+    process.exit(1);
   }
 
   let failed = 0;

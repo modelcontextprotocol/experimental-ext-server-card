@@ -2,9 +2,9 @@
  * MCP Server Cards
  *
  * Experimental schema for SEP-2127. This file is the single source of truth
- * for the Server Card and `server.json` types and is intended to be lifted
- * directly into `schema/draft/schema.ts` of the main MCP specification when
- * Server Cards graduate from this experimental extension.
+ * for the Server Card types and is intended to be lifted directly into
+ * `schema/draft/schema.ts` of the main MCP specification when Server Cards
+ * graduate from this experimental extension.
  *
  * @see https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127
  */
@@ -20,15 +20,15 @@
  * connect to a remote server: identity, transport, and protocol versions.
  * They do not enumerate primitives (tools, resources, prompts) — those remain
  * subject to runtime listing via the protocol's standard list operations.
+ * They also do not describe how to install or run a server locally — that
+ * package metadata belongs to the MCP Registry's `server.json` schema, not to
+ * Server Cards.
  *
  * The fields a Server Card does declare (identity, transport, protocol
  * versions) are advisory, not authoritative: they SHOULD be consistent with
  * the server's `server/discover` response, and clients MUST NOT treat them as
  * authoritative for security decisions. See "Consistency with Runtime
  * Behavior" in docs/discovery.md for the normative requirement.
- *
- * The companion {@link Server} shape is a strict superset that adds local
- * package metadata for use cases like the MCP Registry's `server.json`.
  *
  * @see [SEP-2127: MCP Server Cards](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127)
  * @category Server Cards
@@ -37,16 +37,14 @@ export interface ServerCard {
   /**
    * The Server Card JSON Schema URI that this document conforms to. Required.
    *
-   * Must be a `/v1/` URL under `static.modelcontextprotocol.io/schemas/`,
-   * naming a Server Card / `server.json` schema (e.g.,
-   * `https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json`
-   * or `https://static.modelcontextprotocol.io/schemas/v1/server.schema.json`).
-   * Schema URLs are versioned by the `vN` segment rather than by date so that
-   * minor, additive revisions of the v1 shape don't bump every published
-   * document's `$schema` URL.
+   * Must be the `/v1/` Server Card schema URL under
+   * `static.modelcontextprotocol.io/schemas/` (i.e.,
+   * `https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json`).
+   * Schema URLs are versioned by the `vN` segment rather than by date; a
+   * breaking revision of the Server Card shape publishes a new `vN` family.
    *
    * @format uri
-   * @pattern ^https://static\.modelcontextprotocol\.io/schemas/v1/[^/]+\.schema\.json$
+   * @pattern ^https://static\.modelcontextprotocol\.io/schemas/v1/server-card\.schema\.json$
    */
   $schema: string;
 
@@ -131,25 +129,6 @@ export interface ServerCard {
 }
 
 /**
- * A superset of {@link ServerCard} that additionally describes locally-runnable
- * packages. This is the shape used by the MCP Registry's `server.json`.
- *
- * `Server` documents are typically published to a registry rather than served
- * from a Server Card URI (e.g., `<streamable-http-url>/server-card`), since they
- * may include instructions for installing and executing a server on a client's
- * local machine.
- *
- * @see [SEP-2127: MCP Server Cards](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127)
- * @category Server Cards
- */
-export interface Server extends ServerCard {
-  /**
-   * Metadata helpful for running and connecting to local instances of this MCP server.
-   */
-  packages?: Package[];
-}
-
-/**
  * Repository metadata for the MCP server source code. Enables users and
  * security experts to inspect the code, improving transparency.
  *
@@ -217,7 +196,7 @@ export interface Remote {
   /**
    * Configuration variables that can be referenced as `{curly_braces}`
    * placeholders in `url` (and inside header values via
-   * {@link InputWithVariables.variables}). The map key is the variable
+   * {@link KeyValueInput.variables}). The map key is the variable
    * name; the value defines the variable's properties (e.g., human-readable
    * description, default, whether it is required or secret).
    */
@@ -231,167 +210,8 @@ export interface Remote {
 }
 
 /**
- * Metadata for installing and running a packaged MCP server locally.
- *
- * @category Server Cards
- */
-export interface Package {
-  /**
-   * Registry type indicating how to download packages
-   * (e.g., `"npm"`, `"pypi"`, `"oci"`, `"nuget"`, `"mcpb"`).
-   */
-  registryType: string;
-
-  /**
-   * Package identifier — either a package name (for registries)
-   * or a URL (for direct downloads).
-   */
-  identifier: string;
-
-  /**
-   * Transport configuration for invoking this package after installation.
-   */
-  transport: PackageTransport;
-
-  /**
-   * Base URL of the package registry.
-   *
-   * @format uri
-   */
-  registryBaseUrl?: string;
-
-  /**
-   * Package version.
-   *
-   * @minLength 1
-   */
-  version?: string;
-
-  /**
-   * MCP protocol versions actively supported by this package.
-   */
-  supportedProtocolVersions?: string[];
-
-  /**
-   * A hint to help clients determine the appropriate runtime for the package
-   * (e.g., `"npx"`, `"uvx"`, `"docker"`, `"dnx"`). Should be provided when
-   * `runtimeArguments` are present.
-   */
-  runtimeHint?: string;
-
-  /**
-   * Arguments passed to the package's runtime command (such as `docker` or
-   * `npx`). The `runtimeHint` field should be provided when `runtimeArguments`
-   * are present.
-   */
-  runtimeArguments?: Argument[];
-
-  /**
-   * Arguments passed to the package's binary.
-   */
-  packageArguments?: Argument[];
-
-  /**
-   * Environment variables to be set when running the package.
-   */
-  environmentVariables?: KeyValueInput[];
-
-  /**
-   * SHA-256 hash of the package file for integrity verification. Required for
-   * MCPB packages and optional for other package types. If present, MCP
-   * clients MUST validate the downloaded file matches the hash before running
-   * packages to ensure file integrity.
-   *
-   * @pattern ^[a-f0-9]{64}$
-   */
-  fileSha256?: string;
-}
-
-/**
- * Transport protocol configuration for a locally-runnable package.
- *
- * @category Server Cards
- */
-export type PackageTransport =
-  | StdioTransport
-  | StreamableHttpPackageTransport
-  | SsePackageTransport;
-
-/**
- * Stdio transport — the client launches the package as a subprocess and
- * communicates over standard input and output.
- *
- * @category Server Cards
- */
-export interface StdioTransport {
-  type: "stdio";
-}
-
-/**
- * Streamable-HTTP transport for a locally-runnable package that exposes
- * itself over HTTP after launch.
- *
- * @category Server Cards
- */
-export interface StreamableHttpPackageTransport {
-  type: "streamable-http";
-
-  /**
-   * URL template for the streamable-http transport. Must start with
-   * `http://`, `https://`, or a `{template-variable}`. Variables in
-   * `{curly_braces}` reference argument value-hints, argument names, or
-   * environment variable names from the parent {@link Package}.
-   *
-   * @pattern ^(https?://[^\s]+|\{[a-zA-Z_][a-zA-Z0-9_]*\}[^\s]*)$
-   */
-  url: string;
-
-  /**
-   * HTTP headers to include when connecting to the package's local endpoint.
-   */
-  headers?: KeyValueInput[];
-}
-
-/**
- * Server-sent events (SSE) transport for a locally-runnable package.
- *
- * @category Server Cards
- */
-export interface SsePackageTransport {
-  type: "sse";
-
-  /**
-   * SSE endpoint URL template. See {@link StreamableHttpPackageTransport.url}
-   * for variable-substitution semantics.
-   *
-   * @pattern ^(https?://[^\s]+|\{[a-zA-Z_][a-zA-Z0-9_]*\}[^\s]*)$
-   */
-  url: string;
-
-  /**
-   * HTTP headers to include when connecting to the package's local endpoint.
-   */
-  headers?: KeyValueInput[];
-}
-
-/**
- * A command-line argument supplied to a package's binary or runtime.
- *
- * @remarks
- * Arguments construct command-line parameters that may contain user-provided
- * input. This creates potential command-injection risks if clients execute
- * commands in a shell environment. Clients SHOULD prefer non-shell execution
- * methods (e.g., `posix_spawn`) when possible to eliminate injection risks
- * entirely. Where not possible, clients SHOULD obtain user consent to run the
- * resolved command before execution.
- *
- * @category Server Cards
- */
-export type Argument = PositionalArgument | NamedArgument;
-
-/**
- * A user-supplied or pre-set input value, used in {@link Package} argument
- * and environment-variable definitions.
+ * A user-supplied or pre-set input value, used for {@link Remote} URL
+ * variables and header values.
  *
  * @category Server Cards
  */
@@ -403,7 +223,7 @@ export interface Input {
   description?: string;
 
   /**
-   * Whether the input must be supplied for the package to run.
+   * Whether the input must be supplied for the connection to succeed.
    */
   isRequired?: boolean;
 
@@ -446,73 +266,22 @@ export interface Input {
 }
 
 /**
- * An {@link Input} whose `value` may reference variables for substitution.
+ * A named {@link Input} — used for HTTP headers — whose `value` may reference
+ * variables for substitution.
  *
  * @category Server Cards
  */
-export interface InputWithVariables extends Input {
+export interface KeyValueInput extends Input {
+  /**
+   * Name of the header.
+   */
+  name: string;
+
   /**
    * Variables referenced by `{curly_braces}` identifiers in `value`. The map
    * key is the variable name; the value defines the variable's properties.
    */
   variables?: { [key: string]: Input };
-}
-
-/**
- * A named input — used for environment variables and HTTP headers.
- *
- * @category Server Cards
- */
-export interface KeyValueInput extends InputWithVariables {
-  /**
-   * Name of the header or environment variable.
-   */
-  name: string;
-}
-
-/**
- * A positional command-line input — a value inserted verbatim into the
- * command line.
- *
- * @category Server Cards
- */
-export interface PositionalArgument extends InputWithVariables {
-  type: "positional";
-
-  /**
-   * Identifier for the positional argument. It is not part of the command
-   * line; it may be used by client configuration as a label identifying the
-   * argument, and it identifies the value in transport URL variable
-   * substitution.
-   *
-   * Implementations SHOULD ensure that at least one of `valueHint` or
-   * `value` is set so the positional argument resolves to a concrete value.
-   */
-  valueHint?: string;
-
-  /**
-   * Whether the argument can be repeated multiple times in the command line.
-   */
-  isRepeated?: boolean;
-}
-
-/**
- * A named command-line input — a `--flag={value}` parameter.
- *
- * @category Server Cards
- */
-export interface NamedArgument extends InputWithVariables {
-  type: "named";
-
-  /**
-   * The flag name, including any leading dashes (e.g., `"--port"`).
-   */
-  name: string;
-
-  /**
-   * Whether the argument can be repeated multiple times.
-   */
-  isRepeated?: boolean;
 }
 
 /* ---------- Inlined dependencies from the main MCP spec ---------- */
@@ -536,7 +305,14 @@ export interface NamedArgument extends InputWithVariables {
  * @see [General fields: `_meta`](https://modelcontextprotocol.io/specification/draft/basic#meta) for more details.
  * @category Common Types
  */
-export type MetaObject = Record<string, unknown>;
+export interface MetaObject {
+  // The interface-with-index-signature form is load-bearing: the schema is
+  // generated with --noExtraProps, and this is the form that keeps the
+  // generated MetaObject open (`additionalProperties: {}`) so `_meta` remains
+  // the card's extension point. `Record<string, unknown>` generates a closed
+  // object under that flag.
+  [key: string]: unknown;
+}
 
 /**
  * An optionally-sized icon that can be displayed in a user interface.

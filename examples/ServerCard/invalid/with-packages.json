@@ -1,0 +1,19 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/v2/server-card.schema.json",
+  "name": "example-org/with-packages",
+  "version": "0.4.2",
+  "description": "Package metadata belongs to the registry's server.json, not a Server Card.",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://example.com/mcp"
+    }
+  ],
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@example-org/with-packages",
+      "transport": { "type": "stdio" }
+    }
+  ]
+}

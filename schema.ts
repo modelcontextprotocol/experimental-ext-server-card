@@ -1,36 +1,29 @@
 /**
  * MCP Server Cards
  *
- * Experimental schema for SEP-2127. This file is the single source of truth
- * for the Server Card types and is intended to be lifted directly into
- * `schema/draft/schema.ts` of the main MCP specification when Server Cards
- * graduate from this experimental extension.
- *
- * @see https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127
+ * Schema for the experimental Server Card extension. This file is the single
+ * source of truth for the Server Card types.
  */
 
 /**
  * A static metadata document describing a remote MCP server, suitable for
- * pre-connection discovery. A Server Card MAY be hosted at any unreserved URI;
+ * pre-connection discovery. A Server Card may be hosted at any unreserved URI;
  * MCP reserves `GET <streamable-http-url>/server-card` as the recommended
- * location. Clients learn a card's URL from an MCP/AI Catalog rather than
- * guessing it.
+ * location. Clients learn a card's URL from an [AI Catalog](https://github.com/Agent-Card/ai-catalog)
+ * rather than guessing it.
  *
- * Server Cards intentionally describe only what is needed to discover and
- * connect to a remote server: identity, transport, and protocol versions.
+ * Server Cards describe only what is needed to discover and connect to a remote server:
+ * identity, transport, and protocol versions.
+ *
  * They do not enumerate primitives (tools, resources, prompts) — those remain
  * subject to runtime listing via the protocol's standard list operations.
- * They also do not describe how to install or run a server locally — that
- * package metadata belongs to the MCP Registry's `server.json` schema, not to
- * Server Cards.
  *
  * The fields a Server Card does declare (identity, transport, protocol
- * versions) are advisory, not authoritative: they SHOULD be consistent with
- * the server's `server/discover` response, and clients MUST NOT treat them as
+ * versions) are advisory, not authoritative: they should be consistent with
+ * the server's `server/discover` response, and clients must not treat them as
  * authoritative for security decisions. See "Consistency with Runtime
  * Behavior" in docs/discovery.md for the normative requirement.
  *
- * @see [SEP-2127: MCP Server Cards](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127)
  * @category Server Cards
  */
 export interface ServerCard {

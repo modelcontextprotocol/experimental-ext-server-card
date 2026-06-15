@@ -2,7 +2,7 @@
 
 > #### **Status:** Experimental. This work is for prototyping and feedback only, and is not an accepted or official MCP extension.
 
-This repository defines a TypeScript source-of-truth and generated JSON Schema for **MCP Server Cards** — a static metadata document that describes a remote MCP server enough for clients to discover and connect to it before initialization.
+This repository defines a TypeScript source-of-truth and generated JSON Schema for **MCP Server Cards**. Server Cards are a static metadata document that describes a remote MCP server enough for clients to discover and connect to it before initialization.
 
 It tracks [SEP-2127](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127) and is intended to be lifted directly into the main spec when Server Cards graduate (see [Graduation plan](#graduation-plan) below).
 
@@ -20,11 +20,9 @@ Server Cards intentionally omit primitive listings (tools, resources, prompts) �
 
 ## Relationship to the MCP Registry
 
-A Server Card describes **remote connectivity only**. Metadata for locally-installable servers — packages, registries (npm, PyPI, OCI, NuGet, MCPB), runtime hints, command-line arguments, environment variables — lives in the [MCP Registry](https://github.com/modelcontextprotocol/registry)'s [`server.json` schema](https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/server-json/generic-server-json.md), which is owned by the registry, not by this extension.
+A Server Card describes **remote connectivity only**. Metadata for locally-installable servers, packages, registries (npm, PyPI, OCI, NuGet, MCPB), runtime hints, command-line arguments, environment variables, lives in the [MCP Registry](https://github.com/modelcontextprotocol/registry)'s [`server.json` schema](https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/server-json/generic-server-json.md), which is owned by the registry, not by this extension.
 
-A registry entry MAY reference or embed a Server Card's remote connection info, but this repository does not define any package types, and a document containing `packages` is not a valid Server Card.
-
-Vendors who genuinely need to attach install hints to a Server Card can use namespaced [`_meta`](https://modelcontextprotocol.io/specification/draft/basic#meta) extension metadata, which remains the card's extension point.
+Vendors who genuinely need to attach install hints to a Server Card can use namespaced [`_meta`](https://modelcontextprotocol.io/specification/latest/basic#meta) extension metadata, which remains the card's extension point.
 
 ## Layout
 
@@ -60,7 +58,7 @@ The `$schema` field on every document MUST be a URL of the form:
 https://static.modelcontextprotocol.io/schemas/v1/<name>.schema.json
 ```
 
-Schema URLs are versioned by their `vN` segment rather than by date. Server Card objects are closed (`additionalProperties: false`): a document using a field the schema doesn't declare is rejected, and vendor-specific data belongs in namespaced `_meta`, which stays open. Because the schema is closed, once `v1` is published a breaking revision of the shape would publish a new `vN` family rather than mutating `v1` in place. The `v1` shape is still pre-release and card-only — it intentionally does not include the registry-shaped `Server` / `packages` types.
+Schema URLs are versioned by their `vN` segment. Server Card objects are closed (`additionalProperties: false`): a document using a field the schema doesn't declare is rejected, and vendor-specific data belongs in namespaced `_meta`, which stays open. Once `v1` is published a breaking revision of the shape would publish a new `vN` family rather than mutating `v1` in place. The `v1` shape is still pre-release and card-only — it intentionally does not include the registry-shaped `Server` / `packages` types.
 
 ## Graduation plan
 

@@ -50,11 +50,11 @@ An MCP Catalog document is a JSON object that MUST contain the following members
 
 Each entry in the `entries` array describes a single MCP server and MUST contain:
 
-| Member       | Type   | Required | Description                                                                           |
-| :----------- | :----- | :------- | :------------------------------------------------------------------------------------ |
-| `identifier` | string | Yes      | A logical discovery URN for this server (e.g., `urn:air:example.com:weather`)         |
-| `mediaType`  | string | Yes      | The media type of the referenced artifact. MUST be `application/mcp-server-card+json` |
-| `url`        | string | Yes      | URL where the full [Server Card](#mcp-server-cards) can be retrieved                  |
+| Member       | Type   | Required | Description                                                                                              |
+| :----------- | :----- | :------- | :------------------------------------------------------------------------------------------------------- |
+| `identifier` | string | Yes      | A logical discovery URN for this server (e.g., `urn:air:example.com:weather`)                            |
+| `type`       | string | Yes      | An identifier specifying the type of the referenced artifact. MUST be `application/mcp-server-card+json` |
+| `url`        | string | Yes      | URL where the full [Server Card](#mcp-server-cards) can be retrieved                                     |
 
 An MCP Catalog entry carries no human-readable-name field. Every entry references a
 [Server Card](#mcp-server-cards), and the Server Card's `title` is the source of truth for
@@ -100,7 +100,7 @@ A domain hosting a single MCP server:
   "entries": [
     {
       "identifier": "urn:air:example.com:weather",
-      "mediaType": "application/mcp-server-card+json",
+      "type": "application/mcp-server-card+json",
       "url": "https://example.com/mcp/server-card"
     }
   ]
@@ -117,17 +117,17 @@ A domain hosting several MCP servers, each with its own server card:
   "entries": [
     {
       "identifier": "urn:air:acme.com:code-review",
-      "mediaType": "application/mcp-server-card+json",
+      "type": "application/mcp-server-card+json",
       "url": "https://acme.com/code-review/server-card"
     },
     {
       "identifier": "urn:air:acme.com:docs-search",
-      "mediaType": "application/mcp-server-card+json",
+      "type": "application/mcp-server-card+json",
       "url": "https://acme.com/docs-search/server-card"
     },
     {
       "identifier": "urn:air:acme.com:ci-cd",
-      "mediaType": "application/mcp-server-card+json",
+      "type": "application/mcp-server-card+json",
       "url": "https://acme.com/ci-cd/server-card"
     }
   ]
@@ -155,8 +155,8 @@ flowchart TD
    [Server Card Location](#server-card-location))
 4. Use the server card metadata to configure and establish an MCP connection
 
-Clients SHOULD validate that each entry has `mediaType` set to `application/mcp-server-card+json`
-and ignore entries with unrecognized media types.
+Clients SHOULD validate that each entry has `type` set to `application/mcp-server-card+json`
+and ignore entries with unrecognized types.
 
 ## MCP Server Cards
 

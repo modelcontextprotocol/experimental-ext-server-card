@@ -69,24 +69,14 @@ The segments are:
 
 - **`publisher`** — the publisher's domain (forward DNS), e.g. `example.com`. ADR 0015
   anchors the identifier on this domain.
-- **`namespace`** — optional, populate if you wish
+- **`namespace`** — optional, populate if you wish in accordance with the AI Catalog specification
 - **`name`** — the server's name suffix, i.e. the segment after the `/` in the referenced Server
   Card's reverse-DNS `name`, e.g. `weather`.
 
-So a Server Card named `com.example/weather`, is referenced as
+So a Server Card named `com.example/weather`, can be referenced as
 `urn:air:example.com:weather`. Anchoring the identifier on the publisher's domain keeps
 it globally unique and stable across infrastructure changes, and lets an MCP Catalog entry
 be indexed as-is within a full AI Catalog document.
-
-Open or federated catalogs MUST use the `urn:air:` form. Per ADR 0015 the `identifier`
-remains an open string format, so local, development, or closed catalog instances MAY
-instead use any custom (open-text) identifier.
-
-This `identifier` is a discovery name only. Per ADR 0015 it is deliberately **decoupled
-from cryptographic trust identity**: trust bindings (DIDs, SPIFFE IDs, x509, etc.) are a
-separate concern carried by the full AI Catalog's trust manifests (see
-[Relationship to AI Catalog](#relationship-to-ai-catalog)) and MUST NOT be conflated with
-the discovery `identifier`.
 
 ### Example: Single Server
 

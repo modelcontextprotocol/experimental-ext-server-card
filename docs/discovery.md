@@ -52,7 +52,7 @@ Each entry in the `entries` array describes a single MCP server and MUST contain
 
 | Member        | Type   | Required | Description                                                                           |
 | :------------ | :----- | :------- | :------------------------------------------------------------------------------------ |
-| `identifier`  | string | Yes      | A logical discovery URN for this server (e.g., `urn:air:example.com:weather`)     |
+| `identifier`  | string | Yes      | A logical discovery URN for this server (e.g., `urn:air:example.com:weather`)         |
 | `displayName` | string | Yes      | A human-readable name for the server                                                  |
 | `mediaType`   | string | Yes      | The media type of the referenced artifact. MUST be `application/mcp-server-card+json` |
 | `url`         | string | Yes      | URL where the full [Server Card](#mcp-server-cards) can be retrieved                  |

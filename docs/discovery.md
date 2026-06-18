@@ -52,13 +52,42 @@ Each entry in the `entries` array describes a single MCP server and MUST contain
 
 | Member        | Type   | Required | Description                                                                           |
 | :------------ | :----- | :------- | :------------------------------------------------------------------------------------ |
-| `identifier`  | string | Yes      | A URN identifying this server (e.g., `urn:mcp:server:com.example/weather`)            |
+| `identifier`  | string | Yes      | A logical discovery URN for this server (e.g., `urn:air:com.example:mcp:weather`)     |
 | `displayName` | string | Yes      | A human-readable name for the server                                                  |
 | `mediaType`   | string | Yes      | The media type of the referenced artifact. MUST be `application/mcp-server-card+json` |
 | `url`         | string | Yes      | URL where the full [Server Card](#mcp-server-cards) can be retrieved                  |
 
-The `identifier` MUST begin with `urn:mcp:server:` and end with the `name` value of the
-referenced Server Card, with no characters in between.
+The `identifier` is a **logical discovery name** that follows the
+[AI Catalog](https://github.com/Agent-Card/ai-catalog) domain-anchored URN convention
+standardized in [ADR 0015](https://github.com/Agent-Card/ai-catalog/pull/36):
+
+```
+urn:air:{publisher}:{namespace}:{name}
+```
+
+For an MCP server, these segments are derived from the referenced Server Card's
+reverse-DNS `name` (which has the shape `{publisher}/{name}`):
+
+- **`publisher`** — the reverse-DNS namespace of the Server Card `name` (the segment
+  before the `/`), e.g. `com.example`.
+- **`namespace`** — the artifact-type segment, which MUST be `mcp` for MCP servers.
+- **`name`** — the server-name segment of the Server Card `name` (the segment after the
+  `/`), e.g. `weather`.
+
+So a Server Card named `com.example/weather` is referenced as
+`urn:air:com.example:mcp:weather`. Anchoring the identifier in the publisher's namespace
+keeps it globally unique and stable across infrastructure changes, and lets an MCP Catalog
+entry be indexed as-is within a full AI Catalog document.
+
+Open or federated catalogs MUST use the `urn:air:` form. Local, development, or closed
+catalog instances MAY instead use a `urn:air:local:…` or open-text identifier, mirroring
+ADR 0015.
+
+This `identifier` is a discovery name only. Per ADR 0015 it is deliberately **decoupled
+from cryptographic trust identity**: trust bindings (DIDs, SPIFFE IDs, x509, etc.) are a
+separate concern carried by the full AI Catalog's trust manifests (see
+[Relationship to AI Catalog](#relationship-to-ai-catalog)) and MUST NOT be conflated with
+the discovery `identifier`.
 
 ### Example: Single Server
 
@@ -69,7 +98,7 @@ A domain hosting a single MCP server, using only the required fields:
   "specVersion": "draft",
   "entries": [
     {
-      "identifier": "urn:mcp:server:com.example/weather",
+      "identifier": "urn:air:com.example:mcp:weather",
       "displayName": "Weather Service",
       "mediaType": "application/mcp-server-card+json",
       "url": "https://example.com/mcp/server-card"
@@ -87,19 +116,19 @@ A domain hosting several MCP servers, each with its own server card:
   "specVersion": "draft",
   "entries": [
     {
-      "identifier": "urn:mcp:server:com.acme/code-review",
+      "identifier": "urn:air:com.acme:mcp:code-review",
       "displayName": "Code Review Assistant",
       "mediaType": "application/mcp-server-card+json",
       "url": "https://acme.com/code-review/server-card"
     },
     {
-      "identifier": "urn:mcp:server:com.acme/docs-search",
+      "identifier": "urn:air:com.acme:mcp:docs-search",
       "displayName": "Documentation Search",
       "mediaType": "application/mcp-server-card+json",
       "url": "https://acme.com/docs-search/server-card"
     },
     {
-      "identifier": "urn:mcp:server:com.acme/ci-cd",
+      "identifier": "urn:air:com.acme:mcp:ci-cd",
       "displayName": "CI/CD Pipeline",
       "mediaType": "application/mcp-server-card+json",
       "url": "https://acme.com/ci-cd/server-card"

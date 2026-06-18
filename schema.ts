@@ -299,11 +299,6 @@ export interface KeyValueInput extends Input {
  * @category Common Types
  */
 export interface MetaObject {
-  // The interface-with-index-signature form is load-bearing: the schema is
-  // generated with --noExtraProps, and this is the form that keeps the
-  // generated MetaObject open (`additionalProperties: {}`) so `_meta` remains
-  // the card's extension point. `Record<string, unknown>` generates a closed
-  // object under that flag.
   [key: string]: unknown;
 }
 

@@ -58,14 +58,14 @@ The `$schema` field on every document MUST be a URL of the form:
 https://static.modelcontextprotocol.io/schemas/v1/<name>.schema.json
 ```
 
-Schema URLs are versioned by their `vN` segment. Server Card objects are closed (`additionalProperties: false`): a document using a field the schema doesn't declare is rejected, and vendor-specific data belongs in namespaced `_meta`, which stays open. Once `v1` is published a breaking revision of the shape would publish a new `vN` family rather than mutating `v1` in place. The `v1` shape is still pre-release and card-only — it intentionally does not include the registry-shaped `Server` / `packages` types.
+Schema URLs are versioned by their `vN` segment. Server Card objects are open: the schema does not set `additionalProperties: false`, and vendor-specific data belongs in the namespaced `_meta` field. Once `v1` is published a breaking revision of the shape would publish a new `vN` family rather than mutating `v1` in place. The `v1` shape is still pre-release and card-only — it intentionally does not include the registry-shaped `Server` / `packages` types.
 
 ## Graduation plan
 
 When the SEP is accepted and Server Cards graduate from this experimental extension:
 
 1. The contents of `schema.ts` in this repo move into `schema/draft/schema.ts` of [`modelcontextprotocol/modelcontextprotocol`](https://github.com/modelcontextprotocol/modelcontextprotocol). The two `MetaObject` and `Icon` definitions inlined here at the bottom of `schema.ts` already exist in the main spec and are dropped from the migration.
-2. The main spec's existing `scripts/generate-schemas.ts` regenerates `schema/draft/schema.json` (and downstream `docs/specification/draft/schema.mdx`) — no per-extension generator is required there. One caveat: this repo passes `--noExtraProps` to `typescript-json-schema`, which is what makes Server Card objects closed (`additionalProperties: false`) and rejects registry-style `packages` documents. The main spec's generator does not use that flag, so the closed-object behavior must be carried over (or re-expressed) during migration — otherwise the graduated schema would silently accept unknown properties again.
+2. The main spec's existing `scripts/generate-schemas.ts` regenerates `schema/draft/schema.json` (and downstream `docs/specification/draft/schema.mdx`) — no per-extension generator is required there. Both generators leave objects open (no `additionalProperties: false`), so the generated shape matches without flag changes.
 3. Published documents update their `$schema` to point at the main spec's hosted schema URL (e.g., `https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json` served from `modelcontextprotocol/static`).
 4. This repository is archived with a pointer to the relevant section of `schema/draft/schema.ts` in the main spec.
 

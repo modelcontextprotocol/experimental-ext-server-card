@@ -2,7 +2,6 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$defs": {
     "Icon": {
-      "additionalProperties": false,
       "description": "An optionally-sized icon that can be displayed in a user interface.",
       "properties": {
         "mimeType": {
@@ -31,7 +30,6 @@
       "type": "object"
     },
     "Input": {
-      "additionalProperties": false,
       "description": "A user-supplied or pre-set input value, used for {@link Remote} URL\nvariables and header values.",
       "properties": {
         "choices": {
@@ -74,7 +72,6 @@
       "type": "object"
     },
     "KeyValueInput": {
-      "additionalProperties": false,
       "description": "A named {@link Input} — used for HTTP headers — whose `value` may reference\nvariables for substitution.",
       "properties": {
         "choices": {
@@ -134,7 +131,6 @@
       "type": "object"
     },
     "Remote": {
-      "additionalProperties": false,
       "description": "Metadata for connecting to a remote (HTTP-based) MCP server endpoint.",
       "properties": {
         "headers": {
@@ -173,7 +169,6 @@
       "type": "object"
     },
     "Repository": {
-      "additionalProperties": false,
       "description": "Repository metadata for the MCP server source code. Enables users and\nsecurity experts to inspect the code, improving transparency.",
       "properties": {
         "id": {
@@ -198,7 +193,6 @@
       "type": "object"
     },
     "ServerCard": {
-      "additionalProperties": false,
       "description": "A static metadata document describing a remote MCP server, suitable for\npre-connection discovery. A Server Card may be hosted at any unreserved URI;\nMCP reserves `GET <streamable-http-url>/server-card` as the recommended\nlocation. Clients learn a card's URL from an [AI Catalog](https://github.com/Agent-Card/ai-catalog)\nrather than guessing it.\n\nServer Cards describe only what is needed to discover and connect to a remote server:\nidentity, transport, and protocol versions.\n\nThey do not enumerate primitives (tools, resources, prompts) — those remain\nsubject to runtime listing via the protocol's standard list operations.\n\nThe fields a Server Card does declare (identity, transport, protocol\nversions) are advisory, not authoritative: they should be consistent with\nthe server's `server/discover` response, and clients must not treat them as\nauthoritative for security decisions. See \"Consistency with Runtime\nBehavior\" in docs/discovery.md for the normative requirement.",
       "properties": {
         "$schema": {

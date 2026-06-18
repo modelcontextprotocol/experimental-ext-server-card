@@ -30,7 +30,7 @@ function applyJsonSchema202012Transformations(content: string): string {
 
 async function generate(): Promise<string> {
   const { stdout } = await execAsync(
-    `npx typescript-json-schema --defaultNumberType integer --required --noExtraProps --skipLibCheck "${SCHEMA_TS}" "*"`,
+    `npx typescript-json-schema --defaultNumberType integer --required --skipLibCheck "${SCHEMA_TS}" "*"`,
   );
   const transformed = applyJsonSchema202012Transformations(stdout);
   const config = (await prettier.resolveConfig(SCHEMA_JSON)) ?? {};

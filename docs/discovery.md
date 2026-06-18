@@ -52,7 +52,7 @@ Each entry in the `entries` array describes a single MCP server and MUST contain
 
 | Member        | Type   | Required | Description                                                                           |
 | :------------ | :----- | :------- | :------------------------------------------------------------------------------------ |
-| `identifier`  | string | Yes      | A logical discovery URN for this server (e.g., `urn:air:example.com:mcp:weather`)     |
+| `identifier`  | string | Yes      | A logical discovery URN for this server (e.g., `urn:air:example.com:weather`)     |
 | `displayName` | string | Yes      | A human-readable name for the server                                                  |
 | `mediaType`   | string | Yes      | The media type of the referenced artifact. MUST be `application/mcp-server-card+json` |
 | `url`         | string | Yes      | URL where the full [Server Card](#mcp-server-cards) can be retrieved                  |
@@ -68,14 +68,13 @@ urn:air:{publisher}:{namespace}:{name}
 The segments are:
 
 - **`publisher`** — the publisher's domain (forward DNS), e.g. `example.com`. ADR 0015
-  anchors the identifier on this domain. This is the same `urn:air:{domain}:mcp:{name}`
-  shape as the ADR's own MCP example (`urn:air:example.com:mcp:weather`).
-- **`namespace`** — the artifact-type segment, which MUST be `mcp` for MCP servers.
-- **`name`** — the server's name, i.e. the segment after the `/` in the referenced Server
+  anchors the identifier on this domain.
+- **`namespace`** — optional, populate if you wish
+- **`name`** — the server's name suffix, i.e. the segment after the `/` in the referenced Server
   Card's reverse-DNS `name`, e.g. `weather`.
 
-So a Server Card named `com.example/weather`, published by `example.com`, is referenced as
-`urn:air:example.com:mcp:weather`. Anchoring the identifier on the publisher's domain keeps
+So a Server Card named `com.example/weather`, is referenced as
+`urn:air:example.com:weather`. Anchoring the identifier on the publisher's domain keeps
 it globally unique and stable across infrastructure changes, and lets an MCP Catalog entry
 be indexed as-is within a full AI Catalog document.
 
@@ -98,7 +97,7 @@ A domain hosting a single MCP server, using only the required fields:
   "specVersion": "draft",
   "entries": [
     {
-      "identifier": "urn:air:example.com:mcp:weather",
+      "identifier": "urn:air:example.com:weather",
       "displayName": "Weather Service",
       "mediaType": "application/mcp-server-card+json",
       "url": "https://example.com/mcp/server-card"
@@ -116,19 +115,19 @@ A domain hosting several MCP servers, each with its own server card:
   "specVersion": "draft",
   "entries": [
     {
-      "identifier": "urn:air:acme.com:mcp:code-review",
+      "identifier": "urn:air:acme.com:code-review",
       "displayName": "Code Review Assistant",
       "mediaType": "application/mcp-server-card+json",
       "url": "https://acme.com/code-review/server-card"
     },
     {
-      "identifier": "urn:air:acme.com:mcp:docs-search",
+      "identifier": "urn:air:acme.com:docs-search",
       "displayName": "Documentation Search",
       "mediaType": "application/mcp-server-card+json",
       "url": "https://acme.com/docs-search/server-card"
     },
     {
-      "identifier": "urn:air:acme.com:mcp:ci-cd",
+      "identifier": "urn:air:acme.com:ci-cd",
       "displayName": "CI/CD Pipeline",
       "mediaType": "application/mcp-server-card+json",
       "url": "https://acme.com/ci-cd/server-card"

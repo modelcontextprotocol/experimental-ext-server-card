@@ -69,7 +69,9 @@ For an MCP server, these segments are derived from the referenced Server Card's
 reverse-DNS `name` (which has the shape `{publisher}/{name}`):
 
 - **`publisher`** — the reverse-DNS namespace of the Server Card `name` (the segment
-  before the `/`), e.g. `com.example`.
+  before the `/`), e.g. `com.example`. ADR 0015 describes `publisher` as the publisher's
+  domain; for MCP servers it is the reverse-DNS form already carried in the Server Card
+  `name`, matching the ADR's own MCP examples (e.g. `urn:air:io.github.modelcontextprotocol:mcp:filesystem`).
 - **`namespace`** — the artifact-type segment, which MUST be `mcp` for MCP servers.
 - **`name`** — the server-name segment of the Server Card `name` (the segment after the
   `/`), e.g. `weather`.
@@ -79,9 +81,9 @@ So a Server Card named `com.example/weather` is referenced as
 keeps it globally unique and stable across infrastructure changes, and lets an MCP Catalog
 entry be indexed as-is within a full AI Catalog document.
 
-Open or federated catalogs MUST use the `urn:air:` form. Local, development, or closed
-catalog instances MAY instead use a `urn:air:local:…` or open-text identifier, mirroring
-ADR 0015.
+Open or federated catalogs MUST use the `urn:air:` form. Per ADR 0015 the `identifier`
+remains an open string format, so local, development, or closed catalog instances MAY
+instead use any custom (open-text) identifier.
 
 This `identifier` is a discovery name only. Per ADR 0015 it is deliberately **decoupled
 from cryptographic trust identity**: trust bindings (DIDs, SPIFFE IDs, x509, etc.) are a

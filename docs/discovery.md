@@ -52,13 +52,31 @@ Each entry in the `entries` array describes a single MCP server and MUST contain
 
 | Member        | Type   | Required | Description                                                                           |
 | :------------ | :----- | :------- | :------------------------------------------------------------------------------------ |
-| `identifier`  | string | Yes      | A URN identifying this server (e.g., `urn:mcp:server:com.example/weather`)            |
+| `identifier`  | string | Yes      | A logical discovery URN for this server (e.g., `urn:air:example.com:weather`)         |
 | `displayName` | string | Yes      | A human-readable name for the server                                                  |
 | `mediaType`   | string | Yes      | The media type of the referenced artifact. MUST be `application/mcp-server-card+json` |
 | `url`         | string | Yes      | URL where the full [Server Card](#mcp-server-cards) can be retrieved                  |
 
-The `identifier` MUST begin with `urn:mcp:server:` and end with the `name` value of the
-referenced Server Card, with no characters in between.
+The `identifier` is a **logical discovery name** that follows the
+[AI Catalog](https://github.com/Agent-Card/ai-catalog) domain-anchored URN convention
+standardized in [ADR 0015](https://github.com/Agent-Card/ai-catalog/pull/36):
+
+```
+urn:air:{publisher}:{namespace}:{name}
+```
+
+The segments are:
+
+- **`publisher`** — the publisher's domain (forward DNS), e.g. `example.com`. ADR 0015
+  anchors the identifier on this domain.
+- **`namespace`** — optional, populate if you wish in accordance with the AI Catalog specification
+- **`name`** — the server's name suffix, i.e. the segment after the `/` in the referenced Server
+  Card's reverse-DNS `name`, e.g. `weather`.
+
+So a Server Card named `com.example/weather`, can be referenced as
+`urn:air:example.com:weather`. Anchoring the identifier on the publisher's domain keeps
+it globally unique and stable across infrastructure changes, and lets an MCP Catalog entry
+be indexed as-is within a full AI Catalog document.
 
 ### Example: Single Server
 
@@ -69,7 +87,7 @@ A domain hosting a single MCP server, using only the required fields:
   "specVersion": "draft",
   "entries": [
     {
-      "identifier": "urn:mcp:server:com.example/weather",
+      "identifier": "urn:air:example.com:weather",
       "displayName": "Weather Service",
       "mediaType": "application/mcp-server-card+json",
       "url": "https://example.com/mcp/server-card"
@@ -87,19 +105,19 @@ A domain hosting several MCP servers, each with its own server card:
   "specVersion": "draft",
   "entries": [
     {
-      "identifier": "urn:mcp:server:com.acme/code-review",
+      "identifier": "urn:air:acme.com:code-review",
       "displayName": "Code Review Assistant",
       "mediaType": "application/mcp-server-card+json",
       "url": "https://acme.com/code-review/server-card"
     },
     {
-      "identifier": "urn:mcp:server:com.acme/docs-search",
+      "identifier": "urn:air:acme.com:docs-search",
       "displayName": "Documentation Search",
       "mediaType": "application/mcp-server-card+json",
       "url": "https://acme.com/docs-search/server-card"
     },
     {
-      "identifier": "urn:mcp:server:com.acme/ci-cd",
+      "identifier": "urn:air:acme.com:ci-cd",
       "displayName": "CI/CD Pipeline",
       "mediaType": "application/mcp-server-card+json",
       "url": "https://acme.com/ci-cd/server-card"

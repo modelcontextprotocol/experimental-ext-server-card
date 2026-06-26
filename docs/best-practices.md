@@ -37,11 +37,12 @@ recommendations on top of them.
 - **Internal-only but still remote? Serve a card anyway.** Even if your server is not
   meant for the public, a card is still worth publishing — some clients may discover and
   connect to you this way within your organization.
-- **Also link your Server Card from a catalog entry.** A card lets a client connect once it
-  has your URL; a catalog is what lets clients _find_ that URL in the first place — so
-  publish both. Clients discover cards by way of an [MCP Catalog](./discovery.md#mcp-catalog)
-  entry — which is forward-compatible with, and can be indexed as-is within, the broader
-  [AI Catalog](https://github.com/Agent-Card/ai-catalog). Publish that catalog at the
+- **Also link your Server Card from an [AI Catalog](https://github.com/Agent-Card/ai-catalog)
+  entry.** A card lets a client connect once it has your URL; a catalog is what lets clients
+  _find_ that URL in the first place — so publish both. An AI Catalog is a cross-protocol
+  discovery document (served at `/.well-known/ai-catalog.json`) that can index your MCP
+  server alongside other AI artifacts; see
+  [Relationship to AI Catalog](./discovery.md#relationship-to-ai-catalog). Publish it at the
   domain people associate with your service:
   - For a **public server**, that is your **primary domain** — the domain humans or agents
     would naturally associate with your service.
@@ -53,11 +54,10 @@ recommendations on top of them.
 
 - **Probe domains opportunistically, wherever one enters the session.** The trigger is not
   one specific operation — it is _any_ moment a concrete domain surfaces. When one does,
-  kick off a background check of whether it publishes a catalog with an MCP entry — an
-  [MCP Catalog](./discovery.md#client-discovery-flow), or an
-  [AI Catalog](https://github.com/Agent-Card/ai-catalog) that indexes MCP servers alongside
-  other AI artifacts. The probe is a single well-known
-  [`GET /.well-known/mcp/catalog.json`](./discovery.md#well-known-uri), served with CORS
+  kick off a background check of whether it publishes an
+  [AI Catalog](https://github.com/Agent-Card/ai-catalog) with an MCP entry — a
+  cross-protocol discovery document that indexes MCP servers alongside other AI artifacts.
+  The probe is a single well-known `GET /.well-known/ai-catalog.json`, served with CORS
   headers (and usually cache headers), so it is cheap enough to run speculatively — even
   from a browser-based client. Useful places to hook it in:
   - **Your own fetch / browse tooling.** The cleanest hook. Before a built-in web-fetch
@@ -79,8 +79,8 @@ recommendations on top of them.
     `package.json` URLs, and configured API endpoints.
 - **Keep probing cheap and respectful.** Run probes asynchronously and never block the
   operation the user actually asked for. Cache the result per domain — _including misses_,
-  since most domains publish no catalog — and honor the catalog's `Cache-Control` (see
-  [Caching](./discovery.md#caching)) so you do not re-probe on every touch. Because each
+  since most domains publish no catalog — and honor the catalog's `Cache-Control` response
+  headers so you do not re-probe on every touch. Because each
   probe reveals to the domain that the user interacted with it, let enterprises scope or
   disable probing (see the enterprise-configuration note below).
 - **Surface the possibility of an MCP server installation.** If you find a catalog entry,

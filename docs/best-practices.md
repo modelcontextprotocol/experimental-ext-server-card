@@ -10,12 +10,16 @@ recommendations on top of them.
 ## Best Practices for Server Implementors
 
 - **If you host a remote MCP server, we highly recommend you serve a Server Card.** The
-  card is your server's **connection entry point**: it tells a client how to connect —
-  transport endpoints, supported protocol versions, and the incoming requirements a client
-  must satisfy (such as authentication) — before initialization and without prior
-  configuration. This is valuable on its own: a client that already knows your MCP URL can
-  point at the card directly, no catalog traversal required. (The spec's coverage of these
-  incoming requirements is still expanding — see the pending
+  card is your server's **connection entry point**: it advertises how to connect —
+  transport endpoints, supported protocol versions, and a hint at the incoming
+  requirements a client should expect (such as authentication) — before initialization and
+  without prior configuration. This is valuable on its own: a client that already knows
+  your MCP URL can point at the card directly, no catalog traversal required. Keep in mind
+  the card is advisory and read before connecting, so clients reconcile it against the live
+  connection and
+  [MUST NOT treat it as authoritative for access control](./discovery.md#consistency-with-runtime-behavior) —
+  the connection itself remains the source of truth. (The spec's coverage of these incoming
+  requirements is still expanding — see the pending
   [comprehensive auth scenarios](https://github.com/modelcontextprotocol/experimental-ext-server-card/issues/13)
   and
   [optional tool metadata](https://github.com/modelcontextprotocol/experimental-ext-server-card/issues/30)
@@ -34,10 +38,9 @@ recommendations on top of them.
   meant for the public, a card is still worth publishing — some clients may discover and
   connect to you this way within your organization.
 - **Also link your Server Card from a catalog entry.** A card lets a client connect once it
-  has your URL; a catalog is what lets clients _find_ that URL in the first place. Where the
-  card is the connection entry point, the catalog distributes discovery points — so publish
-  both. Clients discover cards by way of an [MCP Catalog](./discovery.md#mcp-catalog) entry
-  — which is forward-compatible with, and can be indexed as-is within, the broader
+  has your URL; a catalog is what lets clients _find_ that URL in the first place — so
+  publish both. Clients discover cards by way of an [MCP Catalog](./discovery.md#mcp-catalog)
+  entry — which is forward-compatible with, and can be indexed as-is within, the broader
   [AI Catalog](https://github.com/Agent-Card/ai-catalog). Publish that catalog at the
   domain people associate with your service:
   - For a **public server**, that is your **primary domain** — the domain humans or agents

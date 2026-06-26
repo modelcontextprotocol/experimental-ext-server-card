@@ -82,8 +82,8 @@ proxy, which evaluates each connection's destination domain against a `blocked.t
 Discovery can ride the same seam as that filtering — as a new destination domain appears at
 the proxy, fire a background probe for it and keep a cached `domain → catalog` map (misses
 included). This is the comprehensive end of the spectrum, and it composes with the allow /
-deny boundary you may already run; the trade is breadth — most domains publish no catalog, so
-the caching and rate-limiting in
+deny boundary you may already run; the cost of that breadth is noise — most domains publish
+no catalog, so the caching and rate-limiting in
 [Keep probing cheap](#keep-probing-cheap-and-let-enterprises-scope-it) matter most here.
 
 ### Probe on a deliberate fetch

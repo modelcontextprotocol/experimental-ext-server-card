@@ -197,7 +197,7 @@ export interface Remote {
 
   /**
    * MCP protocol versions actively supported by this remote endpoint. Allows
-   * clients to negotiate a compatible protocol version before initialization.
+   * clients to select a compatible protocol version before connecting.
    */
   supportedProtocolVersions?: string[];
 }

@@ -2,7 +2,7 @@
 
 > #### **Status:** Experimental. This work is for prototyping and feedback only, and is not an accepted or official MCP extension.
 
-This repository defines a TypeScript source-of-truth and generated JSON Schema for **MCP Server Cards**. Server Cards are a static metadata document that describes a remote MCP server enough for clients to discover and connect to it before initialization.
+This repository defines a TypeScript source-of-truth and generated JSON Schema for **MCP Server Cards**. Server Cards are a static metadata document that describes a remote MCP server enough for clients to discover and connect to it.
 
 It tracks [SEP-2127](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127) and is intended to be lifted directly into the main spec when Server Cards graduate (see [Graduation plan](#graduation-plan) below).
 

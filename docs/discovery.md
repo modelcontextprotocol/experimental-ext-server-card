@@ -3,8 +3,8 @@
 **Protocol Revision**: draft
 
 MCP defines a discovery mechanism that enables clients to find available MCP servers on a
-domain without prior configuration. This mechanism complements the lifecycle handshake by
-answering _where_ to connect, before the protocol establishes _how_ to communicate.
+domain without prior configuration. This mechanism answers _where_ to connect, before any
+protocol exchange establishes _how_ to communicate.
 
 ## MCP Catalog
 

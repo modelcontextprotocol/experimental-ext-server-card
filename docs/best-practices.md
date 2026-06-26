@@ -3,9 +3,10 @@
 Practical guidance for the two sides of the Server Card ecosystem: people **hosting**
 remote MCP servers, and people **building MCP clients** that discover and connect to them.
 
-This document is advisory. The normative mechanics live in the
-[README](../README.md) and [discovery.md](./discovery.md) — this page only collects
-recommendations on top of them.
+This document is advisory. The normative mechanics for Server Cards live in the
+[README](../README.md) and [discovery.md](./discovery.md), and the catalog format is defined
+by the [AI Catalog specification](https://github.com/Agent-Card/ai-catalog) — this page only
+collects recommendations on top of them.
 
 ## Best Practices for Server Implementors
 
@@ -74,11 +75,13 @@ from a domain. Goose exposes exactly this through its
 [lifecycle hooks](https://goose-docs.ai/docs/guides/context-engineering/hooks) — a
 `hooks.json` maps events such as `PreToolUse` / `PostToolUse` to scripts, with a `matcher`
 regular expression that selects which tool the rule runs for (the docs match tool names like
-`developer__shell|developer__text_editor`). A `PreToolUse` hook matched to the Computer
-Controller extension's web-scrape tool (`web_scrape`) receives the tool input as JSON —
-including the target URL — and can fire the catalog probe for that host before or alongside
-the fetch, without modifying the tool itself. The same hook shape works for any URL-bearing
-tool you choose to match, so you stay in control of _which_ tools trigger a probe.
+`developer__shell|developer__text_editor`). Match a `PreToolUse` rule to a web-fetch tool —
+Goose's Computer Controller extension, for instance, exposes a web-scrape tool (`web_scrape`
+in current builds) that retrieves a page — and the hook receives the tool input as JSON,
+including the target URL. From there it can fire the catalog probe for that host before or
+alongside the fetch, without modifying the tool itself. The same hook shape works for any
+URL-bearing tool you choose to match, so you stay in control of _which_ tools trigger a
+probe.
 
 ### Probe the domains a project already points at
 
@@ -112,7 +115,7 @@ so reuse that model rather than inventing a separate consent flow. Goose has
 **Completely Autonomous**, **Manual Approval**, **Smart Approval**, **Chat Only** — plus
 per-tool levels. Under Manual or Smart Approval, surface "install and connect `<domain>`?" as
 a one-time approval the user answers with the familiar _always allow_ / _ask before_ /
-_never_ choices. This is the "permission model as tools" principle expressed in the client's
+_never allow_ choices. This is the "permission model as tools" principle expressed in the client's
 own vocabulary.
 
 ### Keep probing cheap, and let enterprises scope it

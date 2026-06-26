@@ -51,13 +51,37 @@ recommendations on top of them.
 
 ## Best Practices for Client Implementors
 
-- **Notice the domains you touch.** When you execute an operation against a domain (for
-  example, a fetch), make note of that domain and **asynchronously check whether it
-  publishes a catalog with an MCP entry** — an
+- **Probe domains opportunistically, wherever one enters the session.** The trigger is not
+  one specific operation — it is _any_ moment a concrete domain surfaces. When one does,
+  kick off a background check of whether it publishes a catalog with an MCP entry — an
   [MCP Catalog](./discovery.md#client-discovery-flow), or an
-  [AI Catalog](https://github.com/Agent-Card/ai-catalog) that indexes MCP servers
-  alongside other AI artifacts. This check should run in the background and never block the
-  operation the user actually asked for.
+  [AI Catalog](https://github.com/Agent-Card/ai-catalog) that indexes MCP servers alongside
+  other AI artifacts. The probe is a single well-known
+  [`GET /.well-known/mcp/catalog.json`](./discovery.md#well-known-uri), served with CORS and
+  cache headers, so it is cheap enough to run speculatively. Useful places to hook it in:
+  - **Your own fetch / browse tooling.** The cleanest hook. Before a built-in web-fetch
+    (or browse / open-URL) tool runs, fire a non-blocking probe of the target host in
+    parallel with the fetch. A client with a **pre-tool-invocation hook** mechanism — e.g.
+    a `PreToolUse`-style hook that sees a `WebFetch`'s URL before it executes — can run the
+    probe there without modifying the tool itself. The same applies to web-search result
+    domains and outbound requests made by sandboxed code execution.
+  - **URLs surfaced by already-connected MCP servers.** Tool-result text, resource URIs,
+    resource links, and prompt outputs routinely carry links — and you are already parsing
+    these messages. The host of any URL a connected server hands back is a probe candidate
+    (a GitHub server returning a PR URL, a fetch-style server returning a page, and so on).
+  - **Domains revealed while connecting.** Establishing one connection can structurally
+    expose related domains — for example the authorization server or resource named in an
+    OAuth `WWW-Authenticate` / protected-resource-metadata challenge. Those are learned, not
+    guessed, and worth probing too.
+  - **User- and project-level signals.** A domain the user pastes or names, the active page
+    in a browser-extension client, or — for a coding agent — the project's git remote host,
+    `package.json` URLs, and configured API endpoints.
+- **Keep probing cheap and respectful.** Run probes asynchronously and never block the
+  operation the user actually asked for. Cache the result per domain — _including misses_,
+  since most domains publish no catalog — and honor the catalog's `Cache-Control` (see
+  [Caching](./discovery.md#caching)) so you do not re-probe on every touch. Because each
+  probe reveals to the domain that the user interacted with it, let enterprises scope or
+  disable probing (see the enterprise-configuration note below).
 - **Surface the possibility of an MCP server installation.** If you find a catalog entry,
   let the user know an MCP server is available for that domain. Whether you interrupt the
   session to surface it, or present it more passively, is up to you as the client

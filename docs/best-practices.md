@@ -52,49 +52,75 @@ recommendations on top of them.
 
 ## Best Practices for Client Implementors
 
-- **Probe domains opportunistically, wherever one enters the session.** The trigger is not
-  one specific operation — it is _any_ moment a concrete domain surfaces. When one does,
-  kick off a background check of whether it publishes an
-  [AI Catalog](https://github.com/Agent-Card/ai-catalog) with an MCP entry — a
-  cross-protocol discovery document that indexes MCP servers alongside other AI artifacts.
-  The probe is a single well-known `GET /.well-known/ai-catalog.json`, served with CORS
-  headers (and usually cache headers), so it is cheap enough to run speculatively — even
-  from a browser-based client. Useful places to hook it in:
-  - **Your own fetch / browse tooling.** The cleanest hook. Before a built-in web-fetch
-    (or browse / open-URL) tool runs, fire a non-blocking probe of the target host in
-    parallel with the fetch. A client with a **pre-tool-invocation hook** mechanism — e.g.
-    a `PreToolUse`-style hook that sees a `WebFetch`'s URL before it executes — can run the
-    probe there without modifying the tool itself. The same applies to web-search result
-    domains and outbound requests made by sandboxed code execution.
-  - **URLs surfaced by already-connected MCP servers.** Tool-result text, resource URIs,
-    resource links, and prompt outputs routinely carry links — and you are already parsing
-    these messages. The host of any URL a connected server hands back is a probe candidate
-    (a GitHub server returning a PR URL, a fetch-style server returning a page, and so on).
-  - **Domains revealed while connecting.** Establishing one connection can structurally
-    expose related domains — for example the authorization server or resource named in an
-    OAuth `WWW-Authenticate` / protected-resource-metadata challenge. Those are learned, not
-    guessed, and worth probing too.
-  - **User- and project-level signals.** A domain the user pastes or names, the active page
-    in a browser-extension client, or — for a coding agent — the project's git remote host,
-    `package.json` URLs, and configured API endpoints.
-- **Keep probing cheap and respectful.** Run probes asynchronously and never block the
-  operation the user actually asked for. Cache the result per domain — _including misses_,
-  since most domains publish no catalog — and honor the catalog's `Cache-Control` response
-  headers so you do not re-probe on every touch. Because each
-  probe reveals to the domain that the user interacted with it, let enterprises scope or
-  disable probing (see the enterprise-configuration note below).
-- **Surface the possibility of an MCP server installation.** If you find a catalog entry,
-  let the user know an MCP server is available for that domain. Whether you interrupt the
-  session to surface it, or present it more passively, is up to you as the client
-  implementor.
-- **Let the user say yes, and install mid-turn.** Make clear **which domain** you are
-  connecting to, and if the user agrees, install and connect within the same turn rather
-  than forcing a restart or a separate configuration step.
-  - **Model the install permission like a tool permission.** Reuse the mental model your
-    users already have for tool authorization — e.g. "always allow", "allow from this
-    domain", "always ask" — so connecting to a newly discovered server feels familiar
-    rather than novel.
-- **Let enterprises configure the flow.** Give administrators control over how discovery
-  and installation behave in your client. For example, an enterprise might prefer an **IT
-  escalation path that adds the server to their gateway** rather than letting users install
-  servers in-flight.
+When a client interacts with a domain that publishes an
+[AI Catalog](https://github.com/Agent-Card/ai-catalog) — a `/.well-known/ai-catalog.json`
+discovery document that indexes MCP servers alongside other AI artifacts — it can offer to
+connect the corresponding server in-session. The probe itself is cheap: one asynchronous,
+well-known `GET /.well-known/ai-catalog.json`, run in the background so it never blocks what
+the user asked for.
+
+The temptation is to scan _everything_ — every model token and every tool result — for URLs
+and probe them all. Resist it: parsing every message for domains is noisy and expensive, and
+it surfaces servers the user never meant to touch. Wire discovery into a **few intentional
+integration points** instead, where a domain enters the session with purpose. The
+opportunities below are grounded in [Goose](https://goose-docs.ai/), Block's open-source MCP
+agent — whose extensions are themselves MCP servers — but the shapes generalize to any
+client.
+
+### Probe on a deliberate fetch
+
+The strongest signal is an intentional fetch: the user or the agent chose to retrieve a page
+from a domain. Goose exposes exactly this through its
+[lifecycle hooks](https://goose-docs.ai/docs/guides/context-engineering/hooks) — a
+`hooks.json` maps events such as `PreToolUse` / `PostToolUse` to scripts, with a `matcher`
+regular expression that selects which tool the rule runs for (the docs match tool names like
+`developer__shell|developer__text_editor`). A `PreToolUse` hook matched to the Computer
+Controller extension's web-scrape tool (`web_scrape`) receives the tool input as JSON —
+including the target URL — and can fire the catalog probe for that host before or alongside
+the fetch, without modifying the tool itself. The same hook shape works for any URL-bearing
+tool you choose to match, so you stay in control of _which_ tools trigger a probe.
+
+### Probe the domains a project already points at
+
+A session also carries domains the user has _deliberately_ put in front of the agent: links
+in a `.goosehints` file (Goose injects these into the system prompt and supports literal
+`https://` URLs), an `AGENTS.md`, or a recipe's configuration. A `SessionStart` or
+`UserPromptSubmit` hook can probe that bounded set once per session — these are the domains
+the project is built around, not every string that floats past.
+
+### Offer a hit as a one-click extension install
+
+Because a Goose extension _is_ an MCP server, an AI Catalog entry maps straight onto Goose's
+existing [install path](https://goose-docs.ai/docs/getting-started/using-extensions) — no
+new machinery. When a probe finds an entry, surface it to the user (interrupting the turn or
+presenting it passively is your call) and offer a `goose://extension?...` deep link, the same
+format Goose's extensions directory generates:
+
+```
+goose://extension?url=<streamable-http-url>&type=streamable_http&id=<id>&name=<name>&description=<description>
+```
+
+All parameters are URL-encoded; alternatively, write the equivalent block into Goose's
+`config.yaml`. Either way the server is added and connected **mid-turn**, and you make clear
+**which domain** the user is connecting to.
+
+### Gate the install behind the permission model the user already knows
+
+Connecting a freshly discovered server is exactly the kind of action a client already gates,
+so reuse that model rather than inventing a separate consent flow. Goose has
+[permission modes](https://goose-docs.ai/docs/guides/managing-tools/goose-permissions) —
+**Completely Autonomous**, **Manual Approval**, **Smart Approval**, **Chat Only** — plus
+per-tool levels. Under Manual or Smart Approval, surface "install and connect `<domain>`?" as
+a one-time approval the user answers with the familiar _always allow_ / _ask before_ /
+_never_ choices. This is the "permission model as tools" principle expressed in the client's
+own vocabulary.
+
+### Keep probing cheap, and let enterprises scope it
+
+Run probes asynchronously and never block the operation the user asked for. Cache the result
+per domain — _including misses_, since most domains publish no catalog — and honor the
+catalog's `Cache-Control` response headers so you do not re-probe on every touch. Because
+each probe reveals to the domain that the user interacted with it, give enterprises control:
+an organization might disable in-flight discovery entirely, restrict it to an allowlist, or
+route a find into an **IT escalation path that adds the server to a managed gateway** instead
+of letting users install servers ad hoc.

@@ -25,10 +25,11 @@ recommendations on top of them.
 - **Internal-only but still remote? Serve a card anyway.** Even if your server is not
   meant for the public, a card is still worth publishing — some clients may discover and
   connect to you this way within your organization.
-- **Make sure your Server Card is linked from an AI catalog entry.** Serving a card is
-  only half of discovery; clients find cards by way of a catalog
-  ([MCP Catalog](./discovery.md#mcp-catalog), forward-compatible with the broader
-  [AI Catalog](https://github.com/Agent-Card/ai-catalog)). Publish that catalog at the
+- **Make sure your Server Card is linked from a catalog entry.** Serving a card is only
+  half of discovery; clients find cards by way of an
+  [MCP Catalog](./discovery.md#mcp-catalog) entry — which is forward-compatible with, and
+  can be indexed as-is within, the broader
+  [AI Catalog](https://github.com/Agent-Card/ai-catalog). Publish that catalog at the
   domain people associate with your service:
   - For a **public server**, that is your **primary domain** — the domain humans or agents
     would naturally associate with your service.
@@ -40,9 +41,11 @@ recommendations on top of them.
 
 - **Notice the domains you touch.** When you execute an operation against a domain (for
   example, a fetch), make note of that domain and **asynchronously check whether it
-  publishes an AI catalog with an MCP entry** ([MCP Catalog](./discovery.md#client-discovery-flow)).
-  This check should run in the background and never block the operation the user actually
-  asked for.
+  publishes a catalog with an MCP entry** — an
+  [MCP Catalog](./discovery.md#client-discovery-flow), or an
+  [AI Catalog](https://github.com/Agent-Card/ai-catalog) that indexes MCP servers
+  alongside other AI artifacts. This check should run in the background and never block the
+  operation the user actually asked for.
 - **Surface the possibility of an MCP server installation.** If you find a catalog entry,
   let the user know an MCP server is available for that domain. Whether you interrupt the
   session to surface it, or present it more passively, is up to you as the client

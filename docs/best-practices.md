@@ -60,13 +60,31 @@ connect the corresponding server in-session. The probe itself is cheap: one asyn
 well-known `GET /.well-known/ai-catalog.json`, run in the background so it never blocks what
 the user asked for.
 
-The temptation is to scan _everything_ — every model token and every tool result — for URLs
-and probe them all. Resist it: parsing every message for domains is noisy and expensive, and
-it surfaces servers the user never meant to touch. Wire discovery into a **few intentional
-integration points** instead, where a domain enters the session with purpose. The
-opportunities below are grounded in [Goose](https://goose-docs.ai/), Block's open-source MCP
-agent — whose extensions are themselves MCP servers — but the shapes generalize to any
-client.
+Where you wire that probe in is a design decision with real range, and there is no single
+right answer — **do what fits your client.** You can watch _broadly_, inspecting outbound
+requests and keeping a running, cached list of which domains expose a catalog; or _narrowly_,
+probing only when a domain enters the session with clear intent. Broader coverage finds more
+servers at the cost of more requests, more noise, and more domains learning the user touched
+them; narrower coverage is cheaper and quieter but misses some. The mechanisms below —
+grounded in [Goose](https://goose-docs.ai/), Block's open-source MCP agent, whose extensions
+are themselves MCP servers — span that range, from a network-wide egress sniff to a single
+tool hook. Pick the ones that match your architecture and your users' expectations; the
+shapes generalize to any client.
+
+### Watch outbound traffic at the egress boundary
+
+If your client already mediates network access, that chokepoint is the broadest place to
+discover catalogs — it sees every domain the agent actually reaches, not just the ones a
+particular tool or file surfaced. Goose's
+[macOS sandbox](https://goose-docs.ai/docs/guides/sandbox/) is built exactly this way: the
+seatbelt sandbox denies direct network access and forces all outbound traffic through a local
+proxy, which evaluates each connection's destination domain against a `blocked.txt` list.
+Discovery can ride the same seam as that filtering — as a new destination domain appears at
+the proxy, fire a background probe for it and keep a cached `domain → catalog` map (misses
+included). This is the comprehensive end of the spectrum, and it composes with the allow /
+deny boundary you may already run; the trade is breadth — most domains publish no catalog, so
+the caching and rate-limiting in
+[Keep probing cheap](#keep-probing-cheap-and-let-enterprises-scope-it) matter most here.
 
 ### Probe on a deliberate fetch
 
@@ -89,7 +107,7 @@ A session also carries domains the user has _deliberately_ put in front of the a
 in a `.goosehints` file (Goose injects these into the system prompt and supports literal
 `https://` URLs), an `AGENTS.md`, or a recipe's configuration. A `SessionStart` or
 `UserPromptSubmit` hook can probe that bounded set once per session — these are the domains
-the project is built around, not every string that floats past.
+the project is built around, a naturally bounded set.
 
 ### Offer a hit as a one-click extension install
 

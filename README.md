@@ -24,6 +24,12 @@ A Server Card describes **remote connectivity only**. Metadata for locally-insta
 
 Vendors who genuinely need to attach install hints to a Server Card can use namespaced [`_meta`](https://modelcontextprotocol.io/specification/latest/basic#meta) extension metadata, which remains the card's extension point.
 
+## Best practices
+
+For recommendations on serving Server Cards (for server implementors) and on discovering
+and installing servers from catalogs (for client implementors), see
+[best-practices.md](docs/best-practices.md).
+
 ## Layout
 
 ```
@@ -73,6 +79,8 @@ The `schema.ts` in this repo is deliberately structured to be copy-pasted into t
 
 ## References
 
+- [Best practices for server and client implementors](docs/best-practices.md)
+- [Discovery (MCP Catalog and Server Card location)](docs/discovery.md)
 - [SEP-2127: MCP Server Cards (PR)](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127)
 - [SEP-2133: Extensions framework (PR)](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2133)
 - Abandoned core spec PR (superseded by this repo): [modelcontextprotocol#2652](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2652)

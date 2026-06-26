@@ -57,8 +57,9 @@ recommendations on top of them.
   [MCP Catalog](./discovery.md#client-discovery-flow), or an
   [AI Catalog](https://github.com/Agent-Card/ai-catalog) that indexes MCP servers alongside
   other AI artifacts. The probe is a single well-known
-  [`GET /.well-known/mcp/catalog.json`](./discovery.md#well-known-uri), served with CORS and
-  cache headers, so it is cheap enough to run speculatively. Useful places to hook it in:
+  [`GET /.well-known/mcp/catalog.json`](./discovery.md#well-known-uri), served with CORS
+  headers (and usually cache headers), so it is cheap enough to run speculatively — even
+  from a browser-based client. Useful places to hook it in:
   - **Your own fetch / browse tooling.** The cleanest hook. Before a built-in web-fetch
     (or browse / open-URL) tool runs, fire a non-blocking probe of the target host in
     parallel with the fetch. A client with a **pre-tool-invocation hook** mechanism — e.g.

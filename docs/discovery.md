@@ -208,10 +208,34 @@ Concretely:
 - A client requesting a Server Card SHOULD send `Accept: application/mcp-server-card+json`
   on the GET request. (`Accept` is the representation-negotiation header for a GET; the
   server echoes the negotiated type back in the response `Content-Type`.)
+- **If a server hosts its card at the reserved `/server-card` path, a bare `GET` (no
+  `Accept`) MUST return it.** Hosting the card at the reserved path at all is OPTIONAL; but
+  a server that _does_ MUST NOT _require_ the `Accept` header to return it: the path is
+  already dedicated to the card, so content negotiation is a convenience, not a
+  precondition. This keeps simple clients and crawlers first-class — including those that
+  cannot set custom request headers, and browser clients that cannot get a non-safelisted
+  `Accept` past CORS preflight. Servers SHOULD still respond with
+  `Content-Type: application/mcp-server-card+json`, and clients SHOULD still send the
+  matching `Accept` when they can. (This obligation is scoped to the reserved path only. A
+  server MAY require authentication to reach its endpoint, or expose the card solely at a
+  catalog-advertised `url`; nothing here requires a server to publish its card publicly.)
 - The `/server-card` suffix is appended to the server's **streamable-HTTP URL**, not to
   the domain root. A server that lives at `https://host/mcp` therefore naturally yields
   `https://host/mcp/server-card` — you get path-namespacing for free without inventing a
   separate convention.
+- **Resolving the suffix is a path operation, not string concatenation.** To derive the
+  reserved location from a streamable-HTTP URL, implementations MUST: (1) expand any URL
+  variable templates so the endpoint is a concrete URL first; (2) append
+  `/server-card` to the URL's **path** component per
+  [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986), collapsing a single trailing slash so
+  `https://host/mcp/` and `https://host/mcp` both yield `https://host/mcp/server-card`; and
+  (3) **not** carry any `?query` or `#fragment` from the endpoint URL onto the card URL —
+  the card is endpoint-level static metadata, not a per-request resource. A server whose
+  routing genuinely depends on a query string (for example, a multi-tenant deployment) MUST
+  instead publish an explicit card `url` through its Catalog entry rather than relying on
+  the reserved-suffix derivation. Naively concatenating the suffix onto the raw string is
+  wrong: `https://host/mcp?tenant=acme` + `/server-card` would place the suffix _inside_ the
+  query string.
 
 #### Alternatives considered
 
@@ -288,8 +312,14 @@ Discovery endpoints MUST include appropriate CORS headers to allow browser-based
 ```
 Access-Control-Allow-Origin: *
 Access-Control-Allow-Methods: GET
-Access-Control-Allow-Headers: Content-Type
+Access-Control-Allow-Headers: Content-Type, Accept
 ```
+
+`Accept` is included so that a browser client can send the recommended
+`Accept: application/mcp-server-card+json` (a non-safelisted value that would otherwise be
+blocked at CORS preflight). A client that omits it still works against the reserved
+`/server-card` path, since a bare `GET` there is guaranteed to return the card (see
+[Server Card Location](#server-card-location)).
 
 This is safe because MCP Catalogs contain only public metadata and are read-only.
 

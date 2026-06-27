@@ -3,6 +3,14 @@
 **Status:** Draft for discussion. Not a settled change.
 **Relates to:** [SEP-2127](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127), [`docs/discovery.md`](../discovery.md), issue #12 / PR #22 (which introduced the current `/server-card` reservation).
 
+> **What this PR contains.** Besides this evaluation, the PR applies the two recommended,
+> non-breaking edits to [`docs/discovery.md`](../discovery.md) so the change is ready to
+> merge if maintainers agree: (a) a bare-`GET` guarantee at the reserved `/server-card`
+> path, and (b) an explicit suffix-resolution rule. It deliberately does **not** re-spell
+> the reserved suffix to `/server-card.json` — that is recommendation #1 below (keep
+> `/server-card`), which is a no-op by design. Reviewers who disagree can drop the
+> `discovery.md` edits and keep just this writeup.
+
 ## TL;DR
 
 The suggestion is to recommend fetching a Server Card with a plain `GET` at a fixed
@@ -235,11 +243,12 @@ not move the overall recommendation.
    an available option above, with the case argued against.)_
 2. **Adopt the bare-`GET` clarification** (servers MUST serve the card at the reserved path
    without requiring `Accept`). This is the cheap, non-breaking change that delivers the
-   scraper-friendliness the suggestion is after.
+   scraper-friendliness the suggestion is after. _Applied to `discovery.md` in this PR._
 3. **Specify the suffix-resolution rule** in `discovery.md` (operate on the URL _path_
-   component per RFC 3986; strip query and fragment; collapse a single trailing slash;
-   append after template expansion) so "append `/server-card`" is unambiguous. This gap
-   exists today independent of the `.json` question.
+   component per RFC 3986; do not carry the endpoint's query or fragment onto the card URL;
+   collapse a single trailing slash; append after template expansion) so "append
+   `/server-card`" is unambiguous. This gap exists today independent of the `.json`
+   question. _Applied to `discovery.md` in this PR._
 4. **Keep steering scrapers to the catalog `url`** as the robust path: it is an
    already-resolved absolute URL and sidesteps all suffix arithmetic.
 

@@ -141,7 +141,7 @@
           "type": "array"
         },
         "supportedProtocolVersions": {
-          "description": "MCP protocol versions actively supported by this remote endpoint. Allows\nclients to negotiate a compatible protocol version before initialization.",
+          "description": "MCP protocol versions actively supported by this remote endpoint. Allows\nclients to select a compatible protocol version before connecting.",
           "items": {
             "type": "string"
           },

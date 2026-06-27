@@ -37,6 +37,73 @@ This endpoint:
 - MUST include appropriate CORS headers (see [CORS Requirements](#cors-requirements))
 - SHOULD include appropriate caching headers (see [Caching](#caching))
 
+### Optional DNS Bootstrap
+
+Clients MAY use DNS as an optional bootstrap mechanism to locate an MCP Catalog for a
+domain before, or in parallel with, fetching `/.well-known/mcp/catalog.json`.
+
+DNS bootstrap is not a replacement for the MCP Catalog, and does not encode MCP Server
+Cards directly in DNS. Instead, DNS provides an authoritative, cache-friendly pointer to
+one of:
+
+- an HTTPS URL for an MCP Catalog;
+- an HTTPS URL for an AI Catalog that contains MCP Catalog-compatible entries; or
+- a DNS-published services document that identifies MCP Catalog and/or Server Card URLs.
+
+This distinction avoids the main limitation of DNS-only discovery. DNS answers "where is
+the discovery document for this domain?" The Catalog answers "which MCP servers are
+relevant, and where are their Server Cards?" This preserves support for path-based,
+port-based, multi-server, and third-party-hosted MCP deployments.
+
+One possible substrate for DNS bootstrap is
+[Intelligence-over-DNS (IOD)](https://github.com/markjr/Intelligence-over-DNS), which
+defines DNSSEC-backed publication of structured, machine-readable service metadata using
+DNS TXT records. This extension does not require IOD as a normative dependency; it is
+provided as an example of how DNS-published service metadata can point to MCP discovery
+documents without putting Server Cards themselves in DNS.
+
+For example, a domain could publish an IOD-style services document:
+
+```dns
+_iod.example.com. TXT "v=1; idx=_iod.index; alg=jcs+jws; enc=zstd+b64url; dnssec=required"
+_iod.index.example.com. TXT "id=services;type=services;hash=...;ttl=3600"
+```
+
+The decoded services document could then contain URLs for MCP Catalogs and related Server
+Cards:
+
+```json
+{
+  "iod_version": "1.0",
+  "zone": "example.com",
+  "services": {
+    "mcp_catalogs": [
+      {
+        "url": "https://example.com/.well-known/mcp/catalog.json"
+      }
+    ],
+    "mcp_servers": [
+      {
+        "role": "primary",
+        "url": "https://mcp.example.com",
+        "serverCardUrl": "https://mcp.example.com/weather/server-card"
+      }
+    ]
+  },
+  "last_updated": "2026-06-17T00:00:00Z"
+}
+```
+
+Clients that implement DNS bootstrap:
+
+- MUST still validate HTTPS, media types, and schema conformance for fetched Catalogs and
+  Server Cards.
+- MUST validate DNSSEC when the selected DNS discovery mechanism requires DNSSEC.
+- MUST NOT treat DNS-discovered metadata as authorization or as authoritative for
+  access-control decisions.
+- SHOULD fall back to `/.well-known/mcp/catalog.json` when no usable DNS bootstrap metadata
+  exists.
+
 ### Catalog Format
 
 An MCP Catalog document is a JSON object that MUST contain the following members:
@@ -50,12 +117,12 @@ An MCP Catalog document is a JSON object that MUST contain the following members
 
 Each entry in the `entries` array describes a single MCP server and MUST contain:
 
-| Member        | Type   | Required | Description                                                                           |
-| :------------ | :----- | :------- | :------------------------------------------------------------------------------------ |
-| `identifier`  | string | Yes      | A logical discovery URN for this server (e.g., `urn:air:example.com:weather`)         |
-| `displayName` | string | Yes      | A human-readable name for the server                                                  |
+| Member        | Type   | Required | Description                                                  |
+| :------------ | :----- | :------- | :----------------------------------------------------------- |
+| `identifier`  | string | Yes      | A logical discovery URN for this server (e.g., `urn:air:example.com:weather`) |
+| `displayName` | string | Yes      | A human-readable name for the server                         |
 | `mediaType`   | string | Yes      | The media type of the referenced artifact. MUST be `application/mcp-server-card+json` |
-| `url`         | string | Yes      | URL where the full [Server Card](#mcp-server-cards) can be retrieved                  |
+| `url`         | string | Yes      | URL where the full [Server Card](#mcp-server-cards) can be retrieved |
 
 The `identifier` is a **logical discovery name** that follows the
 [AI Catalog](https://github.com/Agent-Card/ai-catalog) domain-anchored URN convention
@@ -67,7 +134,7 @@ urn:air:{publisher}:{namespace}:{name}
 
 The segments are:
 
-- **`publisher`** — the publisher's domain (forward DNS), e.g. `example.com`. ADR 0015
+- **`publisher`** — the publisher's domain (forward DNS), e.g., `example.com`. ADR 0015
   anchors the identifier on this domain.
 - **`namespace`** — optional, populate if you wish in accordance with the AI Catalog specification
 - **`name`** — the server's name suffix, i.e. the segment after the `/` in the referenced Server
@@ -146,6 +213,11 @@ flowchart TD
    Server Card media type via the `Accept` header (see
    [Server Card Location](#server-card-location))
 4. Use the server card metadata to configure and establish an MCP connection
+
+Clients MAY perform optional DNS bootstrap before, or in parallel with, step 1. If DNS
+bootstrap returns a usable MCP Catalog URL, clients MAY fetch that URL instead of the
+well-known URL. If DNS bootstrap fails or returns unusable metadata, clients SHOULD fall
+back to `https://{domain}/.well-known/mcp/catalog.json`.
 
 Clients SHOULD validate that each entry has `mediaType` set to `application/mcp-server-card+json`
 and ignore entries with unrecognized media types.
@@ -280,6 +352,22 @@ client toward a weaker configuration or the wrong server before it observes the 
 property, not merely a matter of correctness. The normative protections live in
 [Consistency with Runtime Behavior](#consistency-with-runtime-behavior): clients do not
 treat a Server Card as authoritative and reconcile it against the live connection.
+
+### DNS Bootstrap
+
+DNS-discovered metadata is advisory discovery metadata, not authorization metadata. A
+client MUST NOT grant access, skip authentication, or make access-control decisions solely
+because DNS points to an MCP Catalog, AI Catalog, services document, or Server Card.
+
+Clients that implement DNS bootstrap MUST validate DNSSEC when the selected DNS discovery
+mechanism requires DNSSEC. Clients MUST also validate TLS certificates, content types, and
+schema conformance when fetching any HTTPS resources discovered through DNS.
+
+If DNS bootstrap points to an intermediate services document or catalog, clients SHOULD
+apply the same validation and caching rules to the final Server Card that they would have
+applied if it had been discovered directly through `/.well-known/mcp/catalog.json`.
+Clients SHOULD also reconcile advertised Server Card metadata with the server's actual
+runtime behavior after connection establishment.
 
 ### CORS Requirements
 

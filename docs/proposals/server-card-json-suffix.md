@@ -92,13 +92,18 @@ spelling:
 
 **Implication:** the simplest scrapers — the population the suggestion is trying to help —
 are exactly the ones least likely to do correct RFC 3986 path resolution. For those
-clients the **catalog `url` is the robust answer**: it is an already-resolved, absolute URL
-that needs no suffix arithmetic. The path-suffix convention (either spelling) is best
-understood as a _convenience for servers/operators_ and for clients that already hold a
-concrete `/mcp` URL — not as the primary scraper interface. If we adopt or keep _any_
-suffix convention, the spec should state the resolution rule explicitly (operate on the
-path component; strip query and fragment; collapse a single trailing slash). This is a
-real gap in the current text regardless of the `.json` question.
+clients the **catalog `url` is usually the robust answer**: in the common single-endpoint
+case it is an already-resolved, absolute URL that needs no suffix arithmetic. (The escape
+hatch is not total: for a multi-tenant server whose `remotes[].url` is itself templated —
+e.g. `https://{tenant}.example.com/mcp` — there is no single concrete card URL to publish
+either, so the catalog `url` faces the same per-tenant expansion problem. The suffix
+convention is no _worse_ there, but neither is fully pre-resolved.) The path-suffix
+convention (either spelling) is best understood as a _convenience for servers/operators_
+and for clients that already hold a concrete `/mcp` URL — not as the primary scraper
+interface. If we adopt or keep _any_ suffix convention, the spec should state the
+resolution rule explicitly (operate on the path component; strip query and fragment;
+collapse a single trailing slash). This is a real gap in the current text regardless of
+the `.json` question.
 
 ## `/server-card.json` vs `/server-card`: the honest ledger
 
@@ -127,9 +132,12 @@ real gap in the current text regardless of the `.json` question.
   location_ specifically.
 - **`.json` advertises `application/json`, but the card's media type is
   `application/mcp-server-card+json`.** A `.json` extension nudges static hosts toward the
-  _generic_ `application/json`, which is technically a less specific content type than the
-  registered card media type the spec asks servers to serve. So the extension can pull the
-  served `Content-Type` in the _wrong_ direction on the very hosts where it has effect.
+  _generic_ `application/json`, which is a less specific content type than the registered
+  card media type the spec asks servers to serve (a SHOULD, per `discovery.md`). So the
+  extension can pull the served `Content-Type` in the _wrong_ direction on the very hosts
+  where it has effect. The weight of this con depends on whether `application/json` is an
+  acceptable fallback — an explicit open question for maintainers below (#4); treat this
+  bullet as contingent on that answer rather than decisive on its own.
 - **Couples the discovery path to a serialization.** `/server-card` names the _resource_;
   `/server-card.json` bakes the _encoding_ into the path. If a future revision ever serves
   an alternate representation (e.g. a signed/JWT-wrapped card, or a CBOR variant for
@@ -176,8 +184,12 @@ This:
   the exact ergonomics the suggestion wants;
 - keeps `Accept`/`Content-Type` as the correct, recommended behavior for well-behaved
   clients and caches;
-- is **non-breaking** for existing consumers (it only constrains servers _toward_ being
-  more permissive); and
+- is **non-breaking for card consumers** (clients/caches/scrapers): it only constrains
+  servers _toward_ being more permissive, so no existing reader breaks. It is, to be
+  precise, a **new normative obligation on _producers_** — a server that today gates the
+  reserved path on `Accept` would have to relax that. Per this repo's `AGENTS.md`
+  (Principle 4, treat the schema as a public contract), that producer-side tightening is
+  called out explicitly rather than buried; and
 - does not pre-empt any unresolved SEP-2127 question about media types or alternate
   representations.
 
@@ -185,6 +197,34 @@ If, after discussion, maintainers still want the static-host ergonomics of an ex
 the **least-disruptive** form is to keep `/server-card` as the reserved suffix and add a
 note that servers/operators **MAY** additionally expose the card at a `.json` URL and point
 the catalog `url` at it — rather than re-spelling the single reserved location.
+
+### Authenticated and private servers (a caveat on the bare-`GET` MUST)
+
+Neither spelling changes how the card is _protected_, but the bare-`GET` MUST above
+deserves a scoping caveat. A private server whose `/mcp` endpoint sits behind OAuth may
+not want — or may not be able — to serve its card unauthenticated at the reserved path.
+The Server Card is intentionally pre-connection, public-leaning metadata (the discovery
+catalog that points at it is "publicly accessible by design," per `discovery.md`'s
+Security Considerations), but a server is free to host the card anywhere, including behind
+the same auth wall, and advertise it through a trusted channel rather than a public
+catalog. So the MUST should be scoped as: _if_ a server chooses to expose its card at the
+reserved `/server-card` path, a bare `GET` (no `Accept`) must return it — it is **not** a
+requirement to expose the card publicly at all. Servers that require authentication to
+even reach `/mcp` are out of scope for the reserved-path guarantee and rely on the catalog
+`url` (or out-of-band distribution) instead. This is also why the `.json` spelling earns
+nothing here: auth posture is orthogonal to the path's file extension.
+
+### Collision with a real application route
+
+One argument the suggestion's "no drawback" framing skips, and one that mildly _favors_ an
+extension or `.well-known` discriminator: appending `/server-card` (or `/server-card.json`)
+to a server's base URL could collide with an actual application route the server already
+serves at that path. In practice the collision risk is low — `server-card` is a specific,
+reserved token, and a `.json`-suffixed path is marginally less likely to clash with a
+human-facing route than a bare one — but it is real for servers that route their entire
+`/mcp/*` subtree to the JSON-RPC handler and would need to carve out the reserved suffix
+explicitly. This is a (weak) point in the `.json` column, noted for completeness; it does
+not move the overall recommendation.
 
 ## Recommendation
 

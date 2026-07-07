@@ -48,14 +48,28 @@ An MCP Catalog document is a JSON object that MUST contain the following members
 
 #### Catalog Entry
 
-Each entry in the `entries` array describes a single MCP server and MUST contain:
+Each entry in the `entries` array describes a single MCP server. An entry MUST contain
+`identifier`, `mediaType`, and `url`; `displayName` is OPTIONAL:
 
-| Member        | Type   | Required | Description                                                                           |
-| :------------ | :----- | :------- | :------------------------------------------------------------------------------------ |
-| `identifier`  | string | Yes      | A logical discovery URN for this server (e.g., `urn:air:example.com:weather`)         |
-| `displayName` | string | Yes      | A human-readable name for the server                                                  |
-| `mediaType`   | string | Yes      | The media type of the referenced artifact. MUST be `application/mcp-server-card+json` |
-| `url`         | string | Yes      | URL where the full [Server Card](#mcp-server-cards) can be retrieved                  |
+| Member        | Type   | Required | Description                                                                                             |
+| :------------ | :----- | :------- | :------------------------------------------------------------------------------------------------------ |
+| `identifier`  | string | Yes      | A logical discovery URN for this server (e.g., `urn:air:example.com:weather`)                           |
+| `displayName` | string | No       | A human-readable name for the server. When omitted, clients read the name from the Server Card at `url` |
+| `mediaType`   | string | Yes      | The media type of the referenced artifact. MUST be `application/mcp-server-card+json`                   |
+| `url`         | string | Yes      | URL where the full [Server Card](#mcp-server-cards) can be retrieved                                    |
+
+`displayName` is OPTIONAL. The referenced [Server Card](#mcp-server-cards) is the source
+of truth for a server's human-readable name, so an entry MAY omit `displayName` and let
+clients read the name from the card at `url`. When present, `displayName` lets a client
+render a catalog listing without fetching every card; when absent, clients SHOULD source
+the name from the fetched Server Card. Requiring `displayName` would force publishers to
+duplicate and re-sync a name that already lives in the referenced card.
+
+Making `displayName` optional keeps MCP Catalog entries a drop-in subset of
+[AI Catalog](https://github.com/Agent-Card/ai-catalog) entries: the AI Catalog
+specification likewise treats a catalog entry's `displayName` as optional (see
+[ADR 0016](https://github.com/Agent-Card/ai-catalog/pull/39)), so the two specs agree and
+an MCP Catalog entry remains valid as-is within a full AI Catalog document.
 
 The `identifier` is a **logical discovery name** that follows the
 [AI Catalog](https://github.com/Agent-Card/ai-catalog) domain-anchored URN convention
@@ -80,7 +94,8 @@ be indexed as-is within a full AI Catalog document.
 
 ### Example: Single Server
 
-A domain hosting a single MCP server, using only the required fields:
+A domain hosting a single MCP server, using only the required fields (`displayName` is
+omitted, so clients read the name from the referenced Server Card):
 
 ```json
 {
@@ -88,7 +103,6 @@ A domain hosting a single MCP server, using only the required fields:
   "entries": [
     {
       "identifier": "urn:air:example.com:weather",
-      "displayName": "Weather Service",
       "mediaType": "application/mcp-server-card+json",
       "url": "https://example.com/mcp/server-card"
     }

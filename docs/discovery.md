@@ -50,12 +50,24 @@ An MCP Catalog document is a JSON object that MUST contain the following members
 
 Each entry in the `entries` array describes a single MCP server and MUST contain:
 
-| Member        | Type   | Required | Description                                                                           |
-| :------------ | :----- | :------- | :------------------------------------------------------------------------------------ |
-| `identifier`  | string | Yes      | A logical discovery URN for this server (e.g., `urn:air:example.com:weather`)         |
-| `displayName` | string | Yes      | A human-readable name for the server                                                  |
-| `mediaType`   | string | Yes      | The media type of the referenced artifact. MUST be `application/mcp-server-card+json` |
-| `url`         | string | Yes      | URL where the full [Server Card](#mcp-server-cards) can be retrieved                  |
+| Member       | Type   | Required | Description                                                                           |
+| :----------- | :----- | :------- | :------------------------------------------------------------------------------------ |
+| `identifier` | string | Yes      | A logical discovery URN for this server (e.g., `urn:air:example.com:weather`)         |
+| `mediaType`  | string | Yes      | The media type of the referenced artifact. MUST be `application/mcp-server-card+json` |
+| `url`        | string | Yes      | URL where the full [Server Card](#mcp-server-cards) can be retrieved                  |
+
+An MCP Catalog entry carries no human-readable-name field. Every entry references a
+[Server Card](#mcp-server-cards), and the Server Card's `title` is the source of truth for
+a server's name — so a client reads the name from the card at `url` rather than from the
+catalog entry. Carrying the name in the entry as well would only duplicate it and risk it
+drifting out of sync with the card.
+
+The [AI Catalog](https://github.com/Agent-Card/ai-catalog) specification defines an
+OPTIONAL `displayName` on its catalog entries (see
+[ADR 0016](https://github.com/Agent-Card/ai-catalog/pull/39)). Because that field is
+optional upstream, an MCP Catalog entry that omits it is still a valid drop-in subset of
+an AI Catalog entry: MCP simply does not use `displayName`, deferring in every case to the
+referenced Server Card's `title`.
 
 The `identifier` is a **logical discovery name** that follows the
 [AI Catalog](https://github.com/Agent-Card/ai-catalog) domain-anchored URN convention
@@ -80,7 +92,7 @@ be indexed as-is within a full AI Catalog document.
 
 ### Example: Single Server
 
-A domain hosting a single MCP server, using only the required fields:
+A domain hosting a single MCP server:
 
 ```json
 {
@@ -88,7 +100,6 @@ A domain hosting a single MCP server, using only the required fields:
   "entries": [
     {
       "identifier": "urn:air:example.com:weather",
-      "displayName": "Weather Service",
       "mediaType": "application/mcp-server-card+json",
       "url": "https://example.com/mcp/server-card"
     }
@@ -106,19 +117,16 @@ A domain hosting several MCP servers, each with its own server card:
   "entries": [
     {
       "identifier": "urn:air:acme.com:code-review",
-      "displayName": "Code Review Assistant",
       "mediaType": "application/mcp-server-card+json",
       "url": "https://acme.com/code-review/server-card"
     },
     {
       "identifier": "urn:air:acme.com:docs-search",
-      "displayName": "Documentation Search",
       "mediaType": "application/mcp-server-card+json",
       "url": "https://acme.com/docs-search/server-card"
     },
     {
       "identifier": "urn:air:acme.com:ci-cd",
-      "displayName": "CI/CD Pipeline",
       "mediaType": "application/mcp-server-card+json",
       "url": "https://acme.com/ci-cd/server-card"
     }

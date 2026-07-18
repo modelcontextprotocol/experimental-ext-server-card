@@ -9,8 +9,8 @@
  * A static metadata document describing a remote MCP server, suitable for
  * pre-connection discovery. A Server Card may be hosted at any unreserved URI;
  * MCP reserves `GET <streamable-http-url>/server-card` as the recommended
- * location. Clients discover cards through an [AI Catalog](https://github.com/Agent-Card/ai-catalog),
- * which can reference a hosted card by URL or include it inline.
+ * location. Clients learn a card's URL from an [AI Catalog](https://github.com/Agent-Card/ai-catalog)
+ * rather than guessing it.
  *
  * Server Cards describe only what is needed to discover and connect to a remote server:
  * identity, transport, and protocol versions.

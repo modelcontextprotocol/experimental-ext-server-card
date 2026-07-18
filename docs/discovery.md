@@ -2,46 +2,128 @@
 
 **Protocol Revision**: draft
 
-MCP Server Cards describe where and how to connect to MCP servers before any protocol
-exchange. Clients discover Server Cards through an
-[AI Catalog](https://github.com/Agent-Card/ai-catalog).
+MCP defines a discovery mechanism that enables clients to find available MCP servers on a
+domain without prior configuration. This mechanism answers _where_ to connect, before any
+protocol exchange establishes _how_ to communicate.
 
 ## AI Catalog
 
-An AI Catalog is a typed container for discovering heterogeneous AI artifacts. Catalog
-entries for MCP Server Cards use the `application/mcp-server-card+json` media type and
-either reference a hosted card by URL or include the card inline. The AI Catalog
-specification defines the catalog format, publication locations, and discovery behavior.
+An [AI Catalog](https://github.com/Agent-Card/ai-catalog) is a JSON document published by
+an organization to advertise AI artifacts, including the
+[MCP Server Cards](#mcp-server-cards) relevant to its services.
 
-Clients discovering MCP servers from an AI Catalog SHOULD select entries whose `type` is
-`application/mcp-server-card+json` and ignore entries with other media types.
+The catalog MAY reference Server Cards on different domains than the catalog itself — for
+example, an AI Catalog on `acme.org` MAY advertise servers operated by
+`mcp-server-host-saas.com` on Acme's behalf. Clients can fetch the catalog to discover
+servers and then retrieve individual Server Cards for connection details.
+
+### Well-Known URI
+
+An AI Catalog MAY be served from any URL. For automated domain-level discovery, hosts MAY
+publish one at:
+
+```
+/.well-known/ai-catalog.json
+```
+
+Clients performing domain-level discovery SHOULD attempt to retrieve this well-known URL.
+When served over HTTP, the document SHOULD use the `application/ai-catalog+json` media
+type.
+
+### Server Card Entries
+
+The [AI Catalog specification](https://github.com/Agent-Card/ai-catalog) defines the full
+catalog and entry formats. An entry for an MCP Server Card has:
+
+| Member       | Required | Description                                                                                           |
+| :----------- | :------- | :---------------------------------------------------------------------------------------------------- |
+| `identifier` | Yes      | A logical discovery identifier for this server                                                        |
+| `type`       | Yes      | MUST be `application/mcp-server-card+json`                                                            |
+| `url`        | One of   | URL where the full [Server Card](#mcp-server-cards) can be retrieved                                  |
+| `data`       | One of   | The complete [Server Card](#mcp-server-cards) included inline; exactly one of `url` or `data` is used |
+
+For open or federated systems, AI Catalog identifiers use the domain-anchored format:
+
+```
+urn:air:{publisher}:{namespace}:{name}
+```
+
+For example, a Server Card named `com.example/weather` can use the catalog identifier
+`urn:air:example.com:mcp:weather`.
+
+An entry does not need to repeat the Server Card's human-readable fields. Clients can read
+the server's `title`, `description`, and `version` from the card itself, avoiding duplicated
+values that could drift out of sync.
+
+### Example: Single Server
+
+A domain advertising a single MCP server:
+
+```json
+{
+  "specVersion": "1.0",
+  "entries": [
+    {
+      "identifier": "urn:air:example.com:mcp:weather",
+      "type": "application/mcp-server-card+json",
+      "url": "https://example.com/mcp/server-card"
+    }
+  ]
+}
+```
+
+### Example: Multiple Servers
+
+A domain advertising several MCP servers, each with its own Server Card:
+
+```json
+{
+  "specVersion": "1.0",
+  "entries": [
+    {
+      "identifier": "urn:air:acme.com:mcp:code-review",
+      "type": "application/mcp-server-card+json",
+      "url": "https://acme.com/code-review/server-card"
+    },
+    {
+      "identifier": "urn:air:acme.com:mcp:docs-search",
+      "type": "application/mcp-server-card+json",
+      "url": "https://acme.com/docs-search/server-card"
+    },
+    {
+      "identifier": "urn:air:acme.com:mcp:ci-cd",
+      "type": "application/mcp-server-card+json",
+      "url": "https://acme.com/ci-cd/server-card"
+    }
+  ]
+}
+```
 
 ## Client Discovery Flow
 
-Clients discovering MCP servers through an AI Catalog SHOULD follow this procedure:
+Clients performing domain-level discovery SHOULD follow this procedure:
 
 ```mermaid
 flowchart TD
-    A[Client wants to discover MCP servers] --> B[Locate an AI Catalog]
-    B --> C{Valid catalog available?}
-    C -->|No| D[Discovery unavailable]
-    C -->|Yes| E[Select MCP Server Card entries]
-    E --> F{Entry content}
-    F -->|url| G[Fetch the Server Card]
-    F -->|data| H[Read the inline Server Card]
-    G --> I[Validate the Server Card]
+    A[Client wants to discover MCP servers on example.com] --> B[Fetch /.well-known/ai-catalog.json]
+    B --> C{Valid AI Catalog returned?}
+    C -->|No| D[Discovery unavailable for this domain]
+    C -->|Yes| E[Select entries with the MCP Server Card type]
+    E --> F{Entry contains url or data?}
+    F -->|url| G[Fetch Server Card from url]
+    F -->|data| H[Read inline Server Card]
+    G --> I[Use Server Card to configure connection]
     H --> I
-    I --> J[Configure the MCP connection]
 ```
 
-1. Locate and validate an AI Catalog according to the AI Catalog specification.
-2. Select entries whose `type` is `application/mcp-server-card+json`.
-3. For a `url` entry, retrieve the Server Card from that URL, expressing the Server Card
-   media type via the `Accept` header (see
-   [Hosted Server Card Location](#hosted-server-card-location)). For a `data` entry, use
-   the inline Server Card.
-4. Validate the Server Card and use its metadata to configure and establish an MCP
-   connection.
+1. Fetch `https://{domain}/.well-known/ai-catalog.json`
+2. If a valid AI Catalog is returned, select entries whose `type` is
+   `application/mcp-server-card+json`
+3. For an entry with `url`, retrieve the Server Card from that URL, expressing the Server
+   Card media type via the `Accept` header (see
+   [Hosted Server Card Location](#hosted-server-card-location)); for an entry with `data`,
+   use the inline Server Card
+4. Use the Server Card metadata to configure and establish an MCP connection
 
 ## MCP Server Cards
 
@@ -82,10 +164,10 @@ than binding. Accordingly:
 
 ### Hosted Server Card Location
 
-An AI Catalog entry with a `url` provides the exact location of its Server Card, so clients
-never need to guess where a hosted card lives. A Server Card MAY therefore be hosted at any
-unreserved URI. An AI Catalog entry with `data` includes the Server Card inline and does
-not require a hosted location.
+An AI Catalog entry with `url` carries the exact location where its Server Card can be
+retrieved. Clients therefore never need to _guess_ a hosted Server Card's location — they
+follow the `url` the catalog gives them. As a result, a Server Card MAY be hosted at any
+unreserved URI. An entry with `data` carries the Server Card inline instead.
 
 To give servers a predictable default, MCP reserves one location:
 
@@ -111,9 +193,11 @@ The following placements were considered and **not** recommended:
 
 - **A `.well-known` URI** (e.g., `/.well-known/mcp/server-card`). `.well-known` is for
   _site-wide_ metadata, whereas an individual server's card is _application-level_
-  metadata. AI Catalog entries already provide each hosted card's URL, so an individual
-  card can live anywhere its entry points. `.well-known` remains appropriate for
-  site-wide metadata such as AI Catalog and OAuth metadata.
+  metadata. Because the AI Catalog already provides each hosted card's `url`, hosting the
+  card under `.well-known` adds no value — the card can live anywhere the catalog points.
+  `.well-known` remains correct for the AI Catalog itself at
+  `/.well-known/ai-catalog.json` and for OAuth metadata such as
+  `/.well-known/oauth-protected-resource`; those are genuinely site-wide.
 - **The bare streamable-HTTP endpoint** (`GET <streamable-http-url>` with no suffix).
   In the Streamable HTTP transport a `GET` on the MCP endpoint already has a reserved
   meaning — it opens the SSE stream. Serving the card there overloads that endpoint and
@@ -133,6 +217,15 @@ The following placements were considered and **not** recommended:
 
 ## Security Considerations
 
+### Information Disclosure
+
+AI Catalogs and Server Cards used for public discovery are publicly accessible by design.
+They MUST NOT include sensitive information such as:
+
+- Authentication credentials or tokens
+- Internal network topology or private endpoints
+- Proprietary business logic
+
 ### Server Card Accuracy
 
 A Server Card is consumed before the client connects, so an inaccurate one — stale or
@@ -144,8 +237,34 @@ property, not merely a matter of correctness. The normative protections live in
 [Consistency with Runtime Behavior](#consistency-with-runtime-behavior): clients do not
 treat a Server Card as authoritative and reconcile it against the live connection.
 
+### CORS Requirements
+
+Hosted Server Card endpoints MUST include appropriate CORS headers to allow browser-based
+clients:
+
+```
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Methods: GET
+Access-Control-Allow-Headers: Content-Type
+```
+
+This is safe because Server Cards contain only public metadata and are read-only.
+
+### Caching
+
+Server Card hosts SHOULD include caching headers to reduce unnecessary requests:
+
+```
+Cache-Control: public, max-age=3600
+```
+
+### Transport Security
+
+Hosted Server Cards MUST be served over HTTPS (TLS 1.2 or later) in production. HTTP MAY
+be used for local development only.
+
 ### Denial of Service
 
-Server Card hosts SHOULD implement rate limiting on their endpoints to prevent abuse.
+MCP Servers SHOULD implement rate limiting on their Server Card endpoint to prevent abuse.
 
 MCP Clients SHOULD respect `Cache-Control` headers and avoid unnecessary polling.

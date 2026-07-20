@@ -52,14 +52,11 @@ A card lets a client connect once it has your URL; an
 so publish both. An AI Catalog is a cross-protocol discovery document that can index your MCP
 server alongside other AI artifacts; see [discovery.md](./discovery.md).
 
-**Serve it at `/.well-known/ai-catalog.json`.** The specification allows a catalog to live at
-any URL — it is identified by its media type, not its path — and defines two other ways to point
-at one: an HTTP [`Link` header](https://ai-catalog.io/spec/#link-relation-discovery) with
-`rel="ai-catalog"`, and an HTML `<link rel="ai-catalog">` in the document head. Support those
-too; they are how you advertise a catalog you cannot or do not want to put at the domain root,
-and clients are expected to check them first. But publish at the well-known path as well if
-anything can reach it. It is the one location a client can try without having first fetched
-something from you, which is exactly the case in-session discovery depends on.
+**Serve it at `/.well-known/ai-catalog.json`.** That is the one location a client can try
+against a bare domain, with nothing fetched from you first — which is exactly what in-session
+discovery depends on. (The specification allows a catalog to live elsewhere, and defines other
+ways to point at one; support for those is tracked in
+[#43](https://github.com/modelcontextprotocol/experimental-ext-server-card/issues/43).)
 
 Publish it at the domain people associate with your service:
 
@@ -101,21 +98,14 @@ scraped it or given up, and the pie grows as complementary AI services get strun
 ### Where to trigger discovery
 
 The probe itself is cheap: one asynchronous `GET /.well-known/ai-catalog.json`, run in the
-background so it never blocks what the user asked for. That well-known path is the probe worth
-building first — it is the only one you can try against a bare domain, without having fetched
-anything from it.
+background so it never blocks what the user asked for. Build that one first — it is the probe
+you can run against a bare domain, without having fetched anything from it. Additional ways to
+locate a catalog are tracked in
+[#43](https://github.com/modelcontextprotocol/experimental-ext-server-card/issues/43); expect
+this list to grow, and keep the resolution step separate from the triggers below so it can.
 
-It is not the only one, though, and a client that stops there will miss catalogs. The
-specification's
-[discovery procedure](https://ai-catalog.io/spec/#link-relation-discovery) checks two other
-places _ahead_ of the well-known path: an HTTP `Link` header with `rel="ai-catalog"`, and an
-HTML `<link rel="ai-catalog">` in the document head. Honor both — when you are already fetching
-a page (the tool-call trigger below), the header and the markup are in your hands anyway, so
-reading them costs nothing and catches every host that publishes a catalog somewhere other than
-the domain root. Enterprise registries in particular often cannot use `.well-known` at all.
-
-With that settled, the design decision is not _how_ to probe — it is **which moments** in a
-session should trigger one.
+The design decision, then, is not _how_ to probe — it is **which moments** in a session should
+trigger one.
 
 Where a concrete example helps, this section points at [Goose](https://goose-docs.ai/), an
 open-source MCP agent hosted by the Agentic AI Foundation, simply because its hooks and install
@@ -132,7 +122,7 @@ and no domain touched that the user did not already name.
 
 ```mermaid
 flowchart TD
-    A[User enters a URL in the session] --> B["Probe for a catalog — Link header, &lt;link&gt;, then /.well-known/ai-catalog.json"]
+    A[User enters a URL in the session] --> B[Probe domain's /.well-known/ai-catalog.json]
     B --> C{AI Catalog found?}
     C -->|No| D[Cache the miss, stay silent]
     C -->|Yes| E[Select application/mcp-server-card+json entries]

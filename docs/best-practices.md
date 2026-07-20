@@ -71,67 +71,117 @@ Publish it at the domain people associate with your service:
 
 ## Best Practices for Client Implementors
 
-When a client interacts with a domain that publishes an
-[AI Catalog](https://github.com/Agent-Card/ai-catalog) — a `/.well-known/ai-catalog.json`
-discovery document that indexes MCP servers alongside other AI artifacts — it can offer to
-connect the corresponding server in-session. The probe itself is cheap: one asynchronous,
-well-known `GET /.well-known/ai-catalog.json`, run in the background so it never blocks what
-the user asked for.
+### Why you want this
 
-Where you wire that probe in is a design decision with real range, and there is no single
-right answer — **do what fits your client.** You can watch _broadly_, inspecting outbound
-requests and keeping a running, cached list of which domains expose a catalog; or _narrowly_,
-probing only when a domain enters the session with clear intent. Broader coverage finds more
-servers at the cost of more requests, more noise, and more domains learning the user touched
-them; narrower coverage is cheaper and quieter but misses some. The mechanisms below —
-grounded in [Goose](https://goose-docs.ai/), Block's open-source MCP agent, whose extensions
-are themselves MCP servers — span that range, from a network-wide egress sniff to a single
-tool hook. Pick the ones that match your architecture and your users' expectations; the
-shapes generalize to any client.
+Every MCP server your client can reach is capability you did not have to build. A user who
+connects one gets more done without leaving you, and comes back for it — servers make a client
+more useful and stickier, at someone else's development cost. That has never been the hard
+part. The hard part is that connecting a server is a chore the user has to go and do somewhere
+else, out of band, before it can help them — so most users never do it, and the capability
+sits unclaimed.
 
-### Watch outbound traffic at the egress boundary
+A standardized place to publish Server Cards is what closes that gap. Because a service can
+now advertise how to connect to it at a well-known location, your client can offer the
+connection **at the moment the user is already referencing that service** — mid-session, in
+context, instead of in a settings pane the user visits a week later, if ever.
 
-If your client already mediates network access, that chokepoint is the broadest place to
-discover catalogs — it sees every domain the agent actually reaches, not just the ones a
-particular tool or file surfaced. Goose's
-[macOS sandbox](https://goose-docs.ai/docs/guides/sandbox/) is built exactly this way: the
-seatbelt sandbox denies direct network access and forces all outbound traffic through a local
-proxy, which evaluates each connection's destination domain against a `blocked.txt` list.
-Discovery can ride the same seam as that filtering — as a new destination domain appears at
-the proxy, fire a background probe for it and keep a cached `domain → catalog` map (misses
-included). This is the comprehensive end of the spectrum, and it composes with the allow /
-deny boundary you may already run; the cost of that breadth is noise — most domains publish
-no catalog, so the caching and rate-limiting in
-[Keep probing cheap](#keep-probing-cheap-and-let-enterprises-scope-it) matter most here.
+If you wire that in where we recommend below, it costs you remarkably little:
 
-### Probe on a deliberate fetch
+- **No new UX to design.** You already ask users to approve consequential actions. This is one
+  more approval, in the flow they already know.
+- **No new trust to establish.** You only ever offer servers published by a domain the user
+  themselves just put in front of you. You are not recommending anyone — the domain the user
+  named is.
+- **No discovery problem to solve.** No ranking, no index, no crawl, no editorial judgment.
+  The user supplied the domain; you are just asking it what it offers.
 
-The strongest signal is an intentional fetch: the user or the agent chose to retrieve a page
-from a domain. Goose exposes exactly this through its
-[lifecycle hooks](https://goose-docs.ai/docs/guides/context-engineering/hooks) — a
-`hooks.json` maps events such as `PreToolUse` / `PostToolUse` to scripts, with a `matcher`
-regular expression that selects which tool the rule runs for (the docs match tool names like
-`developer__shell|developer__text_editor`). Match a `PreToolUse` rule to a web-fetch tool —
-Goose's Computer Controller extension, for instance, exposes a web-scrape tool (`web_scrape`
-in current builds) that retrieves a page — and the hook receives the tool input as JSON,
-including the target URL. From there it can fire the catalog probe for that host before or
-alongside the fetch, without modifying the tool itself. The same hook shape works for any
-URL-bearing tool you choose to match, so you stay in control of _which_ tools trigger a
-probe.
+The outcome compounds in every direction: the user gets a capability exactly when they need
+it, your client gets stickier, the service gets reached by agents that would otherwise have
+scraped it or given up, and the pie grows as complementary AI services get strung together.
 
-### Probe the domains a project already points at
+### Where to trigger discovery
 
-A session also carries domains the user has _deliberately_ put in front of the agent: links
+The probe itself is always the same and always cheap: one asynchronous
+`GET /.well-known/ai-catalog.json`, run in the background so it never blocks what the user
+asked for. The design decision is not _how_ to probe — it is **which moments** in a session
+should trigger one. That question has real range, and the answer is not the same for every
+client.
+
+#### Start here: probe the domains a user hands you
+
+**At minimum, we recommend a default-on experience that probes any domain a user enters as a
+URL.** This is the strongest signal in the session and the safest place to begin: the user
+typed or pasted the domain themselves, so there is no ambiguity about intent, no inference,
+and no domain touched that the user did not already name.
+
+```mermaid
+flowchart TD
+    A[User enters a URL in the session] --> B[Probe domain's /.well-known/ai-catalog.json]
+    B --> C{AI Catalog found?}
+    C -->|No| D[Cache the miss, stay silent]
+    C -->|Yes| E[Select application/mcp-server-card+json entries]
+    E --> F{Already installed, or previously declined?}
+    F -->|Yes| D
+    F -->|No| G[Fetch the Server Card from the entry's url]
+    G --> H["Offer install — naming the endorsement chain"]
+    H --> I[User approves in the existing permission flow]
+    I --> J[Server connected mid-turn]
+```
+
+A closely related and equally bounded set: the domains a **project** already points at — links
 in a `.goosehints` file (Goose injects these into the system prompt and supports literal
 `https://` URLs), an `AGENTS.md`, or a recipe's configuration. A `SessionStart` or
-`UserPromptSubmit` hook can probe that bounded set once per session — these are the domains
-the project is built around, a naturally bounded set.
+`UserPromptSubmit` hook can probe that set once per session. These are the domains the project
+is built around, the user put them there deliberately, and there are only ever a handful.
 
-### Offer a hit as a one-click extension install
+#### Expand carefully: broader triggers, off by default for now
+
+Beyond user-supplied URLs, the same probe can hang off progressively broader signals. These
+find more servers and touch more domains, and the trade is the same each time: **broader
+coverage, at the cost of more requests, more noise, and more domains learning the user
+interacted with them.**
+
+```mermaid
+flowchart LR
+    A["User-entered URLs<br/>(recommended, default-on)"] --> P[Shared probe + cache]
+    B["Project files<br/>(.goosehints, AGENTS.md, recipes)"] --> P
+    C["Tool-call results<br/>(web fetch, scrape)"] -.opt-in.-> P
+    D["Network egress boundary<br/>(every domain reached)"] -.opt-in.-> P
+    P --> E[domain → catalog map, misses cached]
+    E --> F[Install offer]
+```
+
+- **Tool-call results.** The user or the agent chose to retrieve a page, which is close to
+  direct intent. Goose exposes this through its
+  [lifecycle hooks](https://goose-docs.ai/docs/guides/context-engineering/hooks) — a
+  `hooks.json` maps events such as `PreToolUse` / `PostToolUse` to scripts, with a `matcher`
+  regular expression selecting which tool the rule runs for (the docs match tool names like
+  `developer__shell|developer__text_editor`). Match a `PreToolUse` rule to a web-fetch tool —
+  Goose's Computer Controller extension, for instance, exposes a web-scrape tool (`web_scrape`
+  in current builds) — and the hook receives the tool input as JSON, including the target URL,
+  so it can fire the probe without modifying the tool itself.
+- **The network egress boundary.** The broadest option: if your client already mediates
+  network access, that chokepoint sees every domain the agent actually reaches. Goose's
+  [macOS sandbox](https://goose-docs.ai/docs/guides/sandbox/) is built this way — the seatbelt
+  sandbox denies direct network access and forces outbound traffic through a local proxy that
+  evaluates each destination against a `blocked.txt` list. Discovery can ride the same seam as
+  that filtering. It composes with an allow/deny boundary you may already run, but it is also
+  where the noise is worst: most domains publish no catalog, so the caching in
+  [Keep probing cheap](#keep-probing-cheap-and-let-enterprises-scope-it) matters most here.
+
+**We do not recommend turning these on by default at this time.** Ship them opt-in, behind a
+setting, while the ecosystem and the interaction pattern are still young — the default-on
+case above is the one where the user's intent is unambiguous, and it is worth learning how
+that experience lands before widening the aperture. As implementations gather evidence, this
+guidance may change.
+
+### Turning a hit into a connection
+
+#### Offer it as a one-click install
 
 Because a Goose extension _is_ an MCP server, an AI Catalog entry maps straight onto Goose's
-existing [install path](https://goose-docs.ai/docs/getting-started/using-extensions) — no
-new machinery. When a probe finds an entry, surface it to the user (interrupting the turn or
+existing [install path](https://goose-docs.ai/docs/getting-started/using-extensions) — no new
+machinery. When a probe finds an entry, surface it to the user (interrupting the turn or
 presenting it passively is your call) and offer a `goose://extension?...` deep link, the same
 format Goose's extensions directory generates:
 
@@ -142,7 +192,22 @@ goose://extension?url=<streamable-http-url>&type=streamable_http&id=<id>&name=<n
 All parameters are URL-encoded; alternatively, write the equivalent block into Goose's
 `config.yaml`. Either way the server is added and connected **mid-turn**.
 
-### Show the endorsement chain, not just the endpoint
+#### Make installs reachable from outside the session
+
+In-session discovery is not the only path to a Server Card. A user reading a vendor's docs, a
+README, or a catalog listing in a browser is at exactly the moment of intent — and the install
+should be one click from there, not a copy-paste of a JSON blob into a config file.
+
+Clients should therefore **register a URL scheme or install-link handler** so any web page can
+hand them a server (Goose's `goose://extension?...`, VS Code's install links). Keep the link
+carrying the **catalog entry or Server Card URL** rather than a snapshot of the transport
+details, so the card stays the source of truth and the client re-reads it at install time
+instead of pinning values that may have moved. The same handler then serves both paths: a probe
+that fires mid-session, and a link the user clicked on the open web.
+
+### Security and trust considerations
+
+#### Show the endorsement chain, not just the endpoint
 
 The domain that publishes a catalog is frequently **not** the domain that hosts the server it
 points at. `github.com`'s AI Catalog references a server on `api.githubcopilot.com`; a Google
@@ -156,20 +221,7 @@ server hosted at **api.githubcopilot.com**." The endorsement is the trust signal
 evaluate; the raw endpoint is not. Name both, and make it clear which one the credentials and
 traffic will go to.
 
-### Make installs reachable from outside the session
-
-In-session discovery is not the only path to a Server Card. A user reading a vendor's docs, a
-README, or a catalog listing in a browser is at exactly the moment of intent — and the install
-should be one click from there, not a copy-paste of a JSON blob into a config file.
-
-Clients should therefore **register a URL scheme or install-link handler** so any web page can
-hand them a server (Goose's `goose://extension?...`, VS Code's install links). Keep the link
-carrying the **catalog entry or Server Card URL** rather than a snapshot of the transport
-details, so the card stays the source of truth and the client re-reads it at install time
-instead of pinning values that may have moved. The same handler then serves both paths: a probe
-that fires mid-session, and a link the user clicked on the open web.
-
-### Gate the install behind the permission model the user already knows
+#### Gate the install behind the permission model the user already knows
 
 Connecting a freshly discovered server is exactly the kind of action a client already gates,
 so reuse that model rather than inventing a separate consent flow. Goose has
@@ -180,7 +232,7 @@ a one-time approval the user answers with the familiar _always allow_ / _ask bef
 _never allow_ choices. Discovery should not introduce a consent vocabulary of its own — the
 user already knows this one.
 
-### De-duplicate, and let the user turn it off
+#### De-duplicate, and let the user turn it off
 
 Discovery is only useful if it stays quiet. A client that re-offers a server the user already
 runs, or that surfaces every entry on a busy catalog at once, trains the user to dismiss the
@@ -196,15 +248,16 @@ actually gets evaluated.
   domain — and honor it across sessions. A declined install is a preference, not a
   per-turn answer.
 
-### Keep probing cheap, and let enterprises scope it
+#### Keep probing cheap, and let enterprises scope it
 
 Run probes asynchronously and never block the operation the user asked for. Cache the result
 per domain — _including misses_, since most domains publish no catalog — and honor the
 catalog's `Cache-Control` response headers so you do not re-probe on every touch. When a cached
 entry does expire, revalidate rather than refetch: store the `ETag` a catalog or card endpoint
 returns and send it back as `If-None-Match`, so an unchanged document costs you a `304` and no
-body. Because
-each probe reveals to the domain that the user interacted with it, give enterprises control:
-an organization might disable in-flight discovery entirely, restrict it to an allowlist, or
-route a find into an **IT escalation path that adds the server to a managed gateway** instead
-of letting users install servers ad hoc.
+body.
+
+Because each probe reveals to the domain that the user interacted with it, give enterprises
+control: an organization might disable in-flight discovery entirely, restrict it to an
+allowlist, or route a find into an **IT escalation path that adds the server to a managed
+gateway** instead of letting users install servers ad hoc.

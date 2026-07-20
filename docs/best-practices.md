@@ -136,13 +136,11 @@ flowchart TD
     I -->|Not now| L[Remember the decline]
 ```
 
-Two details worth getting right when you walk the entries. A catalog can **nest** — an entry
-whose `type` is `application/ai-catalog+json` points at another catalog rather than an artifact
-— so a client that filters for `application/mcp-server-card+json` and stops will silently miss
-servers on any domain that organizes that way. Recurse, but bound it: the specification
-recommends a maximum depth of 4, and you should track visited URLs so a cycle cannot walk you in
-circles. Second, an entry carries its artifact either by reference or inline, so not every entry
-requires a fetch.
+One detail worth getting right when you walk the entries: an entry carries its artifact either
+by reference or inline, so not every entry requires a fetch. Catalogs can also be organized in
+ways this extension does not yet resolve — see
+[#44](https://github.com/modelcontextprotocol/experimental-ext-server-card/issues/44) — so treat
+"read the entries" as a step that will gain cases, not a fixed one.
 
 A closely related and equally bounded set: the domains a **project** already points at — links
 in an `AGENTS.md`, a project config, or whatever hints file your client injects into the system

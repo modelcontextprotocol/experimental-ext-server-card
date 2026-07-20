@@ -97,6 +97,11 @@ The probe itself is always the same and always cheap: one asynchronous
 asked for. The design decision is not _how_ to probe — it is **which moments** in a session
 should trigger one.
 
+Where a concrete example helps, this section points at [Goose](https://goose-docs.ai/), Block's
+open-source MCP agent, simply because it is open source and its hooks are easy to read. Nothing
+here is Goose-specific — every mechanism below has an equivalent in any client that runs tools,
+reads project files, or mediates network access.
+
 #### Start here: probe the domains a user hands you
 
 **At minimum, we recommend a default-on experience that probes any domain a user enters as a
@@ -121,10 +126,10 @@ flowchart TD
 ```
 
 A closely related and equally bounded set: the domains a **project** already points at — links
-in a `.goosehints` file (Goose injects these into the system prompt and supports literal
-`https://` URLs), an `AGENTS.md`, or a recipe's configuration. A `SessionStart` or
-`UserPromptSubmit` hook can probe that set once per session. These are the domains the project
-is built around, the user put them there deliberately, and there are only ever a handful.
+in an `AGENTS.md`, a project config, or whatever hints file your client injects into the system
+prompt (in Goose, `.goosehints`, which supports literal `https://` URLs). Probe that set once at
+session start rather than on every turn. These are domains the project is built around, the user
+put them there deliberately, and there are only ever a handful.
 
 #### Expand carefully: broader triggers, off by default for now
 
@@ -136,7 +141,7 @@ interacted with them.**
 ```mermaid
 flowchart LR
     A["User-entered URLs<br/>(recommended, default-on)"] --> P[Shared probe + cache]
-    B["Project files<br/>(.goosehints, AGENTS.md, recipes)"] --> P
+    B["Project files<br/>(AGENTS.md, hints files, recipes)"] --> P
     C["Tool-call results<br/>(web fetch, scrape)"] -.opt-in.-> P
     D["Network egress boundary<br/>(every domain reached)"] -.opt-in.-> P
     P --> E[domain → catalog map, misses cached]
@@ -144,21 +149,22 @@ flowchart LR
 ```
 
 - **Tool-call results.** The user or the agent chose to retrieve a page, which is close to
-  direct intent. Goose exposes this through its
-  [lifecycle hooks](https://goose-docs.ai/docs/guides/context-engineering/hooks) — a
-  `hooks.json` maps events such as `PreToolUse` / `PostToolUse` to scripts, with a `matcher`
-  regular expression selecting which tool the rule runs for (the docs match tool names like
-  `developer__shell|developer__text_editor`). Match a `PreToolUse` rule to a web-fetch tool —
-  Goose's Computer Controller extension, for instance, exposes a web-scrape tool — and the hook receives the tool input as JSON, including the target URL,
-  so it can fire the probe without modifying the tool itself.
-- **The network egress boundary.** The broadest option: if your client already mediates
-  network access, that chokepoint sees every domain the agent actually reaches. Goose's
-  [macOS sandbox](https://goose-docs.ai/docs/guides/sandbox/) is built this way — the seatbelt
-  sandbox denies direct network access and forces outbound traffic through a local proxy that
-  evaluates each destination against a `blocked.txt` list. Discovery can ride the same seam as
-  that filtering. It composes with an allow/deny boundary you may already run, but it is also
-  where the noise is worst: most domains publish no catalog, so the caching in
+  direct intent. If your client can intercept tool calls, select the URL-bearing ones — a web
+  fetch or scrape — and read the target host out of the tool's input before or alongside the
+  call. This needs no change to the tool itself, and you stay in control of _which_ tools
+  trigger a probe. (Goose implements this shape with
+  [lifecycle hooks](https://goose-docs.ai/docs/guides/context-engineering/hooks): a `hooks.json`
+  maps `PreToolUse` / `PostToolUse` to scripts, with a `matcher` regex selecting the tool and
+  the tool input handed to the hook as JSON.)
+- **The network egress boundary.** The broadest option: if your client already mediates network
+  access, that chokepoint sees every domain the agent actually reaches, not just the ones a tool
+  or file surfaced — so discovery can ride the same seam as the filtering you already do there.
+  It composes with an allow/deny boundary you may already run, but it is also where the noise is
+  worst: most domains publish no catalog, so the caching in
   [Keep probing cheap](#keep-probing-cheap-and-let-enterprises-scope-it) matters most here.
+  (Goose's [macOS sandbox](https://goose-docs.ai/docs/guides/sandbox/) is built this way — a
+  seatbelt sandbox denies direct network access and forces outbound traffic through a local
+  proxy that checks each destination against a list.)
 
 **We do not recommend turning these on by default at this time.** Ship them opt-in, behind a
 setting, while the ecosystem and the interaction pattern are still young — the default-on
@@ -168,18 +174,21 @@ guidance may change.
 
 ### Turn a hit into a one-click install
 
-A Goose extension _is_ an MCP server, so an MCP Server Card maps straight onto Goose's
-existing [install path](https://goose-docs.ai/docs/getting-started/using-extensions) — no new
-machinery. When a probe finds an entry, surface it to the user (interrupting the turn or
-presenting it passively is your call) and offer a `goose://extension?...` deep link, the same
-format Goose's extensions directory generates:
+You almost certainly do not need new machinery for this. Your client already has a way to add
+an MCP server — a config file, an install command, a deep link from an extensions directory —
+and a Server Card carries exactly what that path needs: the endpoint, the transport, and the
+identity to display. Discovery just supplies those values from a catalog instead of from a user
+who typed them.
 
-```
-goose://extension?url=<streamable-http-url>&type=streamable_http&id=<id>&name=<name>&description=<description>
-```
+So when a probe finds an entry, surface it (interrupting the turn or presenting it passively is
+your call) and route the accept into the install path you already have. The one thing worth
+insisting on is that the server is added and connected **mid-turn** — the value here is the
+user not having to leave what they were doing.
 
-All parameters are URL-encoded; alternatively, write the equivalent block into Goose's
-`config.yaml`. Either way the server is added and connected **mid-turn**.
+For a concrete instance: in Goose an extension _is_ an MCP server, so a card maps onto its
+existing [install path](https://goose-docs.ai/docs/getting-started/using-extensions) directly —
+either the `goose://extension?...` deep link its extensions directory generates, or the
+equivalent block written into `config.yaml`.
 
 ### Security and trust considerations
 

@@ -5,7 +5,7 @@ remote MCP servers, and people **building MCP clients** that discover and connec
 
 This document is advisory. The normative mechanics for Server Cards live in the
 [README](../README.md) and [discovery.md](./discovery.md), and the catalog format is defined
-by the [AI Catalog specification](https://github.com/Agent-Card/ai-catalog) — this page only
+by the [AI Catalog specification](https://ai-catalog.io/spec/) — this page only
 collects recommendations on top of them.
 
 ## Best Practices for Server Implementors
@@ -48,10 +48,18 @@ connect to you this way within your organization.
 ### Link your card from an AI Catalog entry
 
 A card lets a client connect once it has your URL; an
-[AI Catalog](https://github.com/Agent-Card/ai-catalog) is what lets clients find that URL in the
-first place — so publish both. An AI Catalog is a cross-protocol discovery document (served at
-`/.well-known/ai-catalog.json`) that can index your MCP server alongside other AI artifacts; see
-[discovery.md](./discovery.md).
+[AI Catalog](https://ai-catalog.io/spec/) is what lets clients find that URL in the first place —
+so publish both. An AI Catalog is a cross-protocol discovery document that can index your MCP
+server alongside other AI artifacts; see [discovery.md](./discovery.md).
+
+**Serve it at `/.well-known/ai-catalog.json`.** The specification allows a catalog to live at
+any URL — it is identified by its media type, not its path — and defines two other ways to point
+at one: an HTTP [`Link` header](https://ai-catalog.io/spec/#link-relation-discovery) with
+`rel="ai-catalog"`, and an HTML `<link rel="ai-catalog">` in the document head. Support those
+too; they are how you advertise a catalog you cannot or do not want to put at the domain root,
+and clients are expected to check them first. But publish at the well-known path as well if
+anything can reach it. It is the one location a client can try without having first fetched
+something from you, which is exactly the case in-session discovery depends on.
 
 Publish it at the domain people associate with your service:
 
@@ -92,10 +100,22 @@ scraped it or given up, and the pie grows as complementary AI services get strun
 
 ### Where to trigger discovery
 
-The probe itself is always the same and always cheap: one asynchronous
-`GET /.well-known/ai-catalog.json`, run in the background so it never blocks what the user
-asked for. The design decision is not _how_ to probe — it is **which moments** in a session
-should trigger one.
+The probe itself is cheap: one asynchronous `GET /.well-known/ai-catalog.json`, run in the
+background so it never blocks what the user asked for. That well-known path is the probe worth
+building first — it is the only one you can try against a bare domain, without having fetched
+anything from it.
+
+It is not the only one, though, and a client that stops there will miss catalogs. The
+specification's
+[discovery procedure](https://ai-catalog.io/spec/#link-relation-discovery) checks two other
+places _ahead_ of the well-known path: an HTTP `Link` header with `rel="ai-catalog"`, and an
+HTML `<link rel="ai-catalog">` in the document head. Honor both — when you are already fetching
+a page (the tool-call trigger below), the header and the markup are in your hands anyway, so
+reading them costs nothing and catches every host that publishes a catalog somewhere other than
+the domain root. Enterprise registries in particular often cannot use `.well-known` at all.
+
+With that settled, the design decision is not _how_ to probe — it is **which moments** in a
+session should trigger one.
 
 Where a concrete example helps, this section points at [Goose](https://goose-docs.ai/), an
 open-source MCP agent hosted by the Agentic AI Foundation, simply because its hooks and install
@@ -112,7 +132,7 @@ and no domain touched that the user did not already name.
 
 ```mermaid
 flowchart TD
-    A[User enters a URL in the session] --> B[Probe domain's /.well-known/ai-catalog.json]
+    A[User enters a URL in the session] --> B["Probe for a catalog — Link header, &lt;link&gt;, then /.well-known/ai-catalog.json"]
     B --> C{AI Catalog found?}
     C -->|No| D[Cache the miss, stay silent]
     C -->|Yes| E[Select application/mcp-server-card+json entries]
@@ -241,7 +261,7 @@ Be careful what you claim for that chain. A listing is an assertion by whoever c
 domain, not a verified statement about the server: the AI Catalog specification attaches no
 endorsement semantics to publication, and a compromised catalog host can inject entries. Where
 an entry carries a
-[trust manifest](https://github.com/Agent-Card/ai-catalog/blob/main/specification/ai-catalog.md),
+[trust manifest](https://ai-catalog.io/spec/#trust-manifest),
 that — publisher identity and attestations — is the mechanism built for this decision, and the
 listing chain is what you fall back on when it is absent.
 

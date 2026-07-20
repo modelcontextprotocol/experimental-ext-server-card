@@ -114,8 +114,10 @@ flowchart TD
     F -->|Yes| D
     F -->|No| G[Fetch the Server Card from the entry's url]
     G --> H["Offer install — naming the endorsement chain"]
-    H --> I[User approves in the existing permission flow]
-    I --> J[Server connected mid-turn]
+    H --> I{User approves?}
+    I -->|This session| J[Server connected mid-turn]
+    I -->|Always| K[Server connected and persisted to config]
+    I -->|Not now| L[Remember the decline]
 ```
 
 A closely related and equally bounded set: the domains a **project** already points at — links
@@ -164,9 +166,7 @@ case above is the one where the user's intent is unambiguous, and it is worth le
 that experience lands before widening the aperture. As implementations gather evidence, this
 guidance may change.
 
-### Turning a hit into a connection
-
-#### Offer it as a one-click install
+### Turn a hit into a one-click install
 
 A Goose extension _is_ an MCP server, so an MCP Server Card maps straight onto Goose's
 existing [install path](https://goose-docs.ai/docs/getting-started/using-extensions) — no new
@@ -181,19 +181,6 @@ goose://extension?url=<streamable-http-url>&type=streamable_http&id=<id>&name=<n
 All parameters are URL-encoded; alternatively, write the equivalent block into Goose's
 `config.yaml`. Either way the server is added and connected **mid-turn**.
 
-#### Make installs reachable from outside the session
-
-In-session discovery is not the only path to a Server Card. A user reading a vendor's docs, a
-README, or a catalog listing in a browser is at exactly the moment of intent — and the install
-should be one click from there, not a copy-paste of a JSON blob into a config file.
-
-Clients should therefore **register a URL scheme or install-link handler** so any web page can
-hand them a server (Goose's `goose://extension?...`, VS Code's install links). Keep the link
-carrying the **catalog entry or Server Card URL** rather than a snapshot of the transport
-details, so the card stays the source of truth and the client re-reads it at install time
-instead of pinning values that may have moved. The same handler then serves both paths: a probe
-that fires mid-session, and a link the user clicked on the open web.
-
 ### Security and trust considerations
 
 #### Show the endorsement chain, not just the endpoint
@@ -205,21 +192,58 @@ trust a domain they may not recognize as belonging to the service — which is
 indistinguishable, from the user's side, from a phishing prompt.
 
 Surface the **chain** instead: the domain the user actually interacted with, the fact that it
-endorsed the entry, and the domain that will own the connection — "**github.com** lists an MCP
-server hosted at **api.githubcopilot.com**." The endorsement is the trust signal the user can
-evaluate; the raw endpoint is not. Name both, and make it clear which one the credentials and
-traffic will go to.
+endorsed the entry, and the domain that will own the connection. The endorsement is the trust
+signal the user can evaluate; the raw endpoint is not. Name both, and make it clear which one
+the credentials and traffic will go to.
 
-#### Gate the install behind the permission model the user already knows
+A minimal prompt carrying that chain:
 
-Connecting a freshly discovered server is exactly the kind of action a client already gates,
-so reuse that model rather than inventing a separate consent flow. Goose has
-[permission modes](https://goose-docs.ai/docs/guides/managing-tools/goose-permissions) —
-**Completely Autonomous**, **Manual Approval**, **Smart Approval**, **Chat Only** — plus
-per-tool levels. Under Manual or Smart Approval, surface "install and connect `<domain>`?" as
-a one-time approval the user answers with the familiar _always allow_ / _ask before_ /
-_never allow_ choices. Discovery should not introduce a consent vocabulary of its own — the
-user already knows this one.
+```
+┌──────────────────────────────────────────────────────────┐
+│  Connect an MCP server?                                  │
+│                                                          │
+│  github.com lists a server it does not host:             │
+│                                                          │
+│      GitHub          github.com                          │
+│         └── hosted at  api.githubcopilot.com             │
+│                                                          │
+│  Requests and any credentials you approve will go to     │
+│  api.githubcopilot.com.                                  │
+│                                                          │
+│         [ Not now ]   [ This session ]   [ Always ]      │
+└──────────────────────────────────────────────────────────┘
+```
+
+Two things are doing the work here. The endorsing domain is the one the user recognizes and
+just interacted with, so it leads. The hosting domain is named as a **consequence** — where
+traffic and credentials actually go — rather than as a bare URL the user is asked to
+pattern-match against a brand they know.
+
+#### Always ask before installing — and be stricter here than you are with tools
+
+Reuse the consent surface your users already know; do not invent a second vocabulary for
+discovery. But hold discovery to a **higher bar than tool calls**. Approving a tool call
+authorizes one action by code the user already chose to run. Installing a discovered server
+adds a new, unvetted counterparty to the session — one that will expose its own tools, receive
+its own inputs, and persist if the user lets it. That asymmetry means the autonomy settings a
+client offers for tools should not simply extend to installs:
+
+- **A discovered server MUST NOT be installed automatically.** No "completely autonomous" mode
+  should silently connect one. The approval dialog is load-bearing: the endorsing domain is the
+  user's only trust signal, and skipping the prompt discards it.
+- **There is no blanket "always allow."** An install approval is scoped to _that server_, never
+  to discovery in general and never to a domain's future entries.
+
+Offer the user two accept paths, which is the distinction the prompt above encodes:
+
+- **This session** — connect now, discard at session end. The right default for a server the
+  user is trying out; a mistake costs one session.
+- **Always** — persist the server to the user's configuration, as if they had installed it
+  themselves. This is the equivalent of _always allow_, scoped to that one server.
+
+Together with **Not now**, that is the whole vocabulary. A user who wants a server permanently
+can say so in one click, and a user who is merely curious is not talked into a permanent
+change to their setup.
 
 #### De-duplicate, and let the user turn it off
 
@@ -231,8 +255,11 @@ actually gets evaluated.
 - **Track what is already installed.** Resolve a discovered entry back to a server the user has
   configured — match on the Server Card's `name`, and on the transport URLs in `remotes[]` for
   servers added before any card existed — and stay silent on a hit.
-- **Do not surface a whole catalog.** A domain may list many servers. Offer the one that fits
-  what the user is doing, or a short ranked set; a wall of options is a dismissal.
+- **Consider culling a long catalog.** A domain may list many servers. Presenting the full list
+  is usually fine — most catalogs are short. But if a catalog is long, there is room to get
+  creative: an inference step over the entries' descriptions, weighed against what the user is
+  actually doing in the session, can surface the two or three that fit and tuck the rest behind
+  a "show all." This is an open design space, and we would like to see what clients try.
 - **Remember a "no."** Give the user a durable _don't ask me again_ — per server, and per
   domain — and honor it across sessions. A declined install is a preference, not a
   per-turn answer.
@@ -247,6 +274,43 @@ returns and send it back as `If-None-Match`, so an unchanged document costs you 
 body.
 
 Because each probe reveals to the domain that the user interacted with it, give enterprises
-control: an organization might disable in-flight discovery entirely, restrict it to an
-allowlist, or route a find into an **IT escalation path that adds the server to a managed
-gateway** instead of letting users install servers ad hoc.
+control: an organization might disable in-session discovery entirely, or restrict it to an
+allowlist of domains.
+
+Outright disabling is the blunt option, and it throws away the signal. In a managed
+environment, the interesting move is to **keep discovering and change what a hit does**. An
+employee who hits a useful server is exactly the demand signal a platform team wants, and today
+that signal is lost — the user shrugs, works around it, and nobody learns the server was
+wanted. Instead of offering a direct install, route the find into the organization's existing
+approval path: the client swaps the install button for a request, pre-filled from the catalog
+entry and Server Card it already fetched, so the user supplies intent and the client supplies
+the technical detail.
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  Request this server from IT                             │
+│                                                          │
+│  Direct installs are disabled by your organization.      │
+│                                                          │
+│  Server     GitHub                                       │
+│  Listed by  github.com                                   │
+│  Hosted at  api.githubcopilot.com                        │
+│  Auth       OAuth 2.0                                    │
+│                                                          │
+│  Why do you need it?                                     │
+│  ┌────────────────────────────────────────────────────┐  │
+│  │ Reviewing PRs in the session — would let the agent │  │
+│  │ read diffs directly instead of pasting them.       │  │
+│  └────────────────────────────────────────────────────┘  │
+│                                                          │
+│              [ Cancel ]        [ Send request ]          │
+└──────────────────────────────────────────────────────────┘
+```
+
+Where that request lands is the organization's business — a ticket, a Slack approval, a pull
+request against a gateway's server list. What matters for a client implementor is that the
+Server Card gives you everything the approver needs (identity, endpoint, transport, auth
+posture) without the user having to hunt for it, and that an approved request ends with the
+server added to the **managed gateway** the whole org already connects through, rather than
+installed ad hoc on one laptop. The user gets a path instead of a dead end, and the platform
+team gets a queue of real, evidenced demand.

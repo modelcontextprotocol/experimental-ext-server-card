@@ -268,8 +268,6 @@ subsequent requests for the same resource. Hosts SHOULD honor `If-None-Match` an
 `Cache-Control`: fresh responses avoid requests, while entity-tag validation avoids transferring
 an unchanged document after it becomes stale.
 
-MCP Clients SHOULD respect `Cache-Control` headers and avoid unnecessary polling.
-
 ### Transport Security
 
 Hosted Server Cards MUST be served over HTTPS (TLS 1.2 or later) in production. HTTP MAY
@@ -278,3 +276,6 @@ be used for local development only.
 ### Denial of Service
 
 MCP Servers SHOULD implement rate limiting on their Server Card endpoint to prevent abuse.
+
+MCP Clients SHOULD respect `Cache-Control` headers, use returned `ETag` validators as described
+in [Caching](#caching), and avoid unnecessary polling.

@@ -239,8 +239,8 @@ treat a Server Card as authoritative and reconcile it against the live connectio
 
 ### CORS Requirements
 
-Hosted AI Catalog and Server Card endpoints MUST include appropriate CORS headers to allow
-browser-based clients:
+Hosted Server Card endpoints MUST include appropriate CORS headers to allow browser-based
+clients:
 
 ```
 Access-Control-Allow-Origin: *
@@ -249,12 +249,11 @@ Access-Control-Allow-Headers: Content-Type, If-None-Match
 Access-Control-Expose-Headers: ETag
 ```
 
-This is safe because these documents contain only public metadata and are read-only.
+This is safe because Server Cards contain only public metadata and are read-only.
 
 ### Caching
 
-Hosts serving AI Catalogs or Server Cards SHOULD include caching headers to reduce unnecessary
-requests:
+Server Card hosts SHOULD include caching headers to reduce unnecessary requests:
 
 ```
 Cache-Control: public, max-age=3600

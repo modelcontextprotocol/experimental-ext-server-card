@@ -10,45 +10,64 @@ collects recommendations on top of them.
 
 ## Best Practices for Server Implementors
 
-- **If you host a remote MCP server, we highly recommend you serve a Server Card.** The
-  card is your server's **connection entry point**: it advertises how to connect —
-  transport endpoints, supported protocol versions, and a hint at the incoming
-  requirements a client should expect (such as authentication) — before the client connects,
-  and without prior configuration. This is valuable on its own: a client that already knows
-  your MCP URL can point at the card directly, no catalog traversal required. Keep in mind
-  the card is advisory and read before connecting, so clients reconcile it against the live
-  connection and
-  [MUST NOT treat it as authoritative for access control](./discovery.md#consistency-with-runtime-behavior) —
-  the connection itself remains the source of truth. (The spec's coverage of these incoming
-  requirements is still expanding — see the pending
-  [comprehensive auth scenarios](https://github.com/modelcontextprotocol/experimental-ext-server-card/issues/13)
-  and
-  [optional tool metadata](https://github.com/modelcontextprotocol/experimental-ext-server-card/issues/30)
-  discussions.)
-- **Fill out your card completely.** Populate every applicable field — not just the
-  required minimum. Optional identity fields (`title`, `description`, `icons`,
-  `repository`, `websiteUrl`) and fully-specified transport metadata make your server
-  easier to discover, present, and connect to. The card is also the natural home for any
-  vendor-specific extension data via namespaced [`_meta`](https://modelcontextprotocol.io/specification/latest/basic#meta).
-- **Server Cards describe remote connectivity only.** If your server is **not remote**,
-  there is nothing to serve a card for — Server Cards exist to advertise remote transport
-  endpoints, and locally-installable server metadata lives in the
-  [MCP Registry](https://github.com/modelcontextprotocol/registry)'s `server.json` schema
-  instead (see [Relationship to the MCP Registry](../README.md#relationship-to-the-mcp-registry)).
-- **Internal-only but still remote? Serve a card anyway.** Even if your server is not
-  meant for the public, a card is still worth publishing — some clients may discover and
-  connect to you this way within your organization.
-- **Also link your Server Card from an [AI Catalog](https://github.com/Agent-Card/ai-catalog)
-  entry.** A card lets a client connect once it has your URL; a catalog is what lets clients
-  _find_ that URL in the first place — so publish both. An AI Catalog is a cross-protocol
-  discovery document (served at `/.well-known/ai-catalog.json`) that can index your MCP
-  server alongside other AI artifacts; see [discovery.md](./discovery.md). Publish it at the
-  domain people associate with your service:
-  - For a **public server**, that is your **primary domain** — the domain humans or agents
-    would naturally associate with your service.
-  - For an **internal enterprise** server, that is wherever an internal team would first
-    encounter you — for example the domain hosting your REST API or the other resources a
-    team becomes aware of _before_ they learn you also expose MCP.
+If you host a remote MCP server, we highly recommend you serve a Server Card — and publish an
+AI Catalog entry that points at it. The two do different jobs: the card is how a client
+_connects_ to you, and the catalog is how a client _finds_ you in the first place. The guidance
+below covers what to put in the card, what does not belong in one, and where to publish the
+catalog entry.
+
+### Serve a card: it is your connection entry point
+
+A Server Card advertises how to connect — transport endpoints, supported protocol versions, and
+a hint at the incoming requirements a client should expect (such as authentication) — before
+the client connects, and without prior configuration. This is valuable on its own, with no
+catalog involved: a client that already knows your MCP URL can point at the card directly, no
+traversal required.
+
+Keep in mind the card is advisory and read before connecting, so clients reconcile it against
+the live connection and
+[MUST NOT treat it as authoritative for access control](./discovery.md#consistency-with-runtime-behavior) —
+the connection itself remains the source of truth. The spec's coverage of these incoming
+requirements is still expanding; see the pending
+[comprehensive auth scenarios](https://github.com/modelcontextprotocol/experimental-ext-server-card/issues/13)
+and
+[optional tool metadata](https://github.com/modelcontextprotocol/experimental-ext-server-card/issues/30)
+discussions.
+
+### Fill out your card completely
+
+Populate every applicable field — not just the required minimum. Optional identity fields
+(`title`, `description`, `icons`, `repository`, `websiteUrl`) and fully-specified transport
+metadata make your server easier to discover, present, and connect to. The card is also the
+natural home for any vendor-specific extension data, via namespaced
+[`_meta`](https://modelcontextprotocol.io/specification/latest/basic#meta).
+
+### Server Cards describe remote connectivity only
+
+If your server is **not remote**, there is nothing to serve a card for — Server Cards exist to
+advertise remote transport endpoints, and locally-installable server metadata lives in the
+[MCP Registry](https://github.com/modelcontextprotocol/registry)'s `server.json` schema instead
+(see [Relationship to the MCP Registry](../README.md#relationship-to-the-mcp-registry)).
+
+Internal-only but still remote is a different case: serve a card anyway. Even if your server is
+not meant for the public, a card is still worth publishing — some clients may discover and
+connect to you this way within your organization.
+
+### Also link your card from an AI Catalog entry
+
+A card lets a client connect once it has your URL; an
+[AI Catalog](https://github.com/Agent-Card/ai-catalog) is what lets clients find that URL in the
+first place — so publish both. An AI Catalog is a cross-protocol discovery document (served at
+`/.well-known/ai-catalog.json`) that can index your MCP server alongside other AI artifacts; see
+[discovery.md](./discovery.md).
+
+Publish it at the domain people associate with your service:
+
+- For a **public server**, that is your **primary domain** — the domain humans or agents would
+  naturally associate with your service.
+- For an **internal enterprise** server, that is wherever an internal team would first encounter
+  you — for example the domain hosting your REST API or the other resources a team becomes aware
+  of _before_ they learn you also expose MCP.
 
 ## Best Practices for Client Implementors
 

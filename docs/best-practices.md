@@ -1,4 +1,4 @@
-# Best Practices
+# MCP Server Card Best Practices
 
 Practical guidance for the two sides of the Server Card ecosystem: people **hosting**
 remote MCP servers, and people **building MCP clients** that discover and connect to them.
@@ -21,31 +21,23 @@ catalog entry.
 A Server Card advertises how to connect — transport endpoints, supported protocol versions, and
 a hint at the incoming requirements a client should expect (such as authentication) — before
 the client connects, and without prior configuration. This is valuable on its own, with no
-catalog involved: a client that already knows your MCP URL can point at the card directly, no
-traversal required.
+catalog involved: a client that already knows your MCP URL can point at the card directly.
 
 Keep in mind the card is advisory and read before connecting, so clients reconcile it against
 the live connection and
 [MUST NOT treat it as authoritative for access control](./discovery.md#consistency-with-runtime-behavior) —
-the connection itself remains the source of truth. The spec's coverage of these incoming
-requirements is still expanding; see the pending
-[comprehensive auth scenarios](https://github.com/modelcontextprotocol/experimental-ext-server-card/issues/13)
-and
-[optional tool metadata](https://github.com/modelcontextprotocol/experimental-ext-server-card/issues/30)
-discussions.
+the connection itself remains the source of truth.
 
 ### Fill out your card completely
 
 Populate every applicable field — not just the required minimum. Optional identity fields
 (`title`, `description`, `icons`, `repository`, `websiteUrl`) and fully-specified transport
-metadata make your server easier to discover, present, and connect to. The card is also the
-natural home for any vendor-specific extension data, via namespaced
-[`_meta`](https://modelcontextprotocol.io/specification/latest/basic#meta).
+metadata make your server easier to discover, present, and connect to.
 
 ### Server Cards describe remote connectivity only
 
 If your server is **not remote**, there is nothing to serve a card for — Server Cards exist to
-advertise remote transport endpoints, and locally-installable server metadata lives in the
+advertise remote transport endpoints only. Locally-installable server metadata lives in the
 [MCP Registry](https://github.com/modelcontextprotocol/registry)'s `server.json` schema instead
 (see [Relationship to the MCP Registry](../README.md#relationship-to-the-mcp-registry)).
 
@@ -53,7 +45,7 @@ Internal-only but still remote is a different case: serve a card anyway. Even if
 not meant for the public, a card is still worth publishing — some clients may discover and
 connect to you this way within your organization.
 
-### Also link your card from an AI Catalog entry
+### Link your card from an AI Catalog entry
 
 A card lets a client connect once it has your URL; an
 [AI Catalog](https://github.com/Agent-Card/ai-catalog) is what lets clients find that URL in the
@@ -69,26 +61,25 @@ Publish it at the domain people associate with your service:
   you — for example the domain hosting your REST API or the other resources a team becomes aware
   of _before_ they learn you also expose MCP.
 
-## Best Practices for Client Implementors
+Review the guidance below for Client Implementors to determine the appropriate domain for your service. For example, for GitHub, it would be common for the user of a coding agent to paste a URL like `https://github.com/modelcontextprotocol/experimental-ext-server-card/pull/36` into a session. So `github.com/.well-known/ai-catalog.json` is an excellent place to put your AI catalog - not `githubcopilot.com/.well-known/ai-catalog.json`, where GitHub's MCP server [happens to live](https://github.com/github/github-mcp-server).
 
-### Why you want this
+## Best Practices for Client Implementors
 
 Every MCP server your client can reach is capability you did not have to build. A user who
 connects one gets more done without leaving you, and comes back for it — servers make a client
-more useful and stickier, at someone else's development cost. That has never been the hard
-part. The hard part is that connecting a server is a chore the user has to go and do somewhere
+more useful and stickier, at someone else's development cost. The hard part is that connecting a server is a chore the user has to go and do somewhere
 else, out of band, before it can help them — so most users never do it, and the capability
 sits unclaimed.
 
-A standardized place to publish Server Cards is what closes that gap. Because a service can
-now advertise how to connect to it at a well-known location, your client can offer the
+As per above guidance for server implementors, we now have a way for them to advertise
+their service in an easy-to-find, standardized location. Using this, your client can offer the
 connection **at the moment the user is already referencing that service** — mid-session, in
-context, instead of in a settings pane the user visits a week later, if ever.
+context, instead of in a settings pane the user never visits.
 
 If you wire that in where we recommend below, it costs you remarkably little:
 
-- **No new UX to design.** You already ask users to approve consequential actions. This is one
-  more approval, in the flow they already know.
+- **No new UX to design.** You already ask users to approve consequential actions like tool calls. This is one
+  more approval, in a flow they already know.
 - **No new trust to establish.** You only ever offer servers published by a domain the user
   themselves just put in front of you. You are not recommending anyone — the domain the user
   named is.
@@ -104,8 +95,7 @@ scraped it or given up, and the pie grows as complementary AI services get strun
 The probe itself is always the same and always cheap: one asynchronous
 `GET /.well-known/ai-catalog.json`, run in the background so it never blocks what the user
 asked for. The design decision is not _how_ to probe — it is **which moments** in a session
-should trigger one. That question has real range, and the answer is not the same for every
-client.
+should trigger one.
 
 #### Start here: probe the domains a user hands you
 
@@ -157,8 +147,7 @@ flowchart LR
   `hooks.json` maps events such as `PreToolUse` / `PostToolUse` to scripts, with a `matcher`
   regular expression selecting which tool the rule runs for (the docs match tool names like
   `developer__shell|developer__text_editor`). Match a `PreToolUse` rule to a web-fetch tool —
-  Goose's Computer Controller extension, for instance, exposes a web-scrape tool (`web_scrape`
-  in current builds) — and the hook receives the tool input as JSON, including the target URL,
+  Goose's Computer Controller extension, for instance, exposes a web-scrape tool — and the hook receives the tool input as JSON, including the target URL,
   so it can fire the probe without modifying the tool itself.
 - **The network egress boundary.** The broadest option: if your client already mediates
   network access, that chokepoint sees every domain the agent actually reaches. Goose's
@@ -179,7 +168,7 @@ guidance may change.
 
 #### Offer it as a one-click install
 
-Because a Goose extension _is_ an MCP server, an AI Catalog entry maps straight onto Goose's
+A Goose extension _is_ an MCP server, so an MCP Server Card maps straight onto Goose's
 existing [install path](https://goose-docs.ai/docs/getting-started/using-extensions) — no new
 machinery. When a probe finds an entry, surface it to the user (interrupting the turn or
 presenting it passively is your call) and offer a `goose://extension?...` deep link, the same

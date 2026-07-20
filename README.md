@@ -27,7 +27,7 @@ Vendors who genuinely need to attach install hints to a Server Card can use name
 ## Best practices
 
 For recommendations on serving Server Cards (for server implementors) and on discovering
-and installing servers from catalogs (for client implementors), see
+and installing servers by way of AI Catalogs (for client implementors), see
 [best-practices.md](docs/best-practices.md).
 
 ## Layout

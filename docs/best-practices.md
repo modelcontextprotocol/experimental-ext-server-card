@@ -30,9 +30,9 @@ the connection itself remains the source of truth.
 
 ### Fill out your card completely
 
-Populate every applicable field — not just the required minimum. Optional identity fields
-(`title`, `description`, `icons`, `repository`, `websiteUrl`) and fully-specified transport
-metadata make your server easier to discover, present, and connect to.
+Populate every applicable field — not just the required minimum. `description` is required, but
+the optional identity fields (`title`, `icons`, `repository`, `websiteUrl`) and fully-specified
+transport metadata are what make your server easy to discover, present, and connect to.
 
 ### Server Cards describe remote connectivity only
 
@@ -61,15 +61,15 @@ Publish it at the domain people associate with your service:
   you — for example the domain hosting your REST API or the other resources a team becomes aware
   of _before_ they learn you also expose MCP.
 
-Review the guidance below for Client Implementors to determine the appropriate domain for your service. For example, for GitHub, it would be common for the user of a coding agent to paste a URL like `https://github.com/modelcontextprotocol/experimental-ext-server-card/pull/36` into a session. So `github.com/.well-known/ai-catalog.json` is an excellent place to put your AI catalog - not `githubcopilot.com/.well-known/ai-catalog.json`, where GitHub's MCP server [happens to live](https://github.com/github/github-mcp-server).
+Review the guidance below for Client Implementors to determine the appropriate domain for your service. For example, for GitHub, it would be common for the user of a coding agent to paste a URL like `https://github.com/modelcontextprotocol/experimental-ext-server-card/pull/36` into a session. So `github.com/.well-known/ai-catalog.json` is an excellent place to put your AI catalog - not `api.githubcopilot.com/.well-known/ai-catalog.json`, where GitHub's MCP server [happens to live](https://github.com/github/github-mcp-server).
 
 ## Best Practices for Client Implementors
 
 Every MCP server your client can reach is capability you did not have to build. A user who
 connects one gets more done without leaving you, and comes back for it — servers make a client
-more useful and stickier, at someone else's development cost. The hard part is that connecting a server is a chore the user has to go and do somewhere
-else, out of band, before it can help them — so most users never do it, and the capability
-sits unclaimed.
+more useful and stickier. The hard part is that connecting a server is a chore the user has to
+go and do somewhere else, out of band, before it can help them — so most users never do it, and
+the capability sits unclaimed.
 
 As per above guidance for server implementors, we now have a way for them to advertise
 their service in an easy-to-find, standardized location. Using this, your client can offer the
@@ -97,8 +97,9 @@ The probe itself is always the same and always cheap: one asynchronous
 asked for. The design decision is not _how_ to probe — it is **which moments** in a session
 should trigger one.
 
-Where a concrete example helps, this section points at [Goose](https://goose-docs.ai/), Block's
-open-source MCP agent, simply because it is open source and its hooks are easy to read. Nothing
+Where a concrete example helps, this section points at [Goose](https://goose-docs.ai/), an
+open-source MCP agent hosted by the Agentic AI Foundation, simply because its hooks and install
+path are easy to read. Nothing
 here is Goose-specific — every mechanism below has an equivalent in any client that runs tools,
 reads project files, or mediates network access.
 
@@ -115,15 +116,23 @@ flowchart TD
     B --> C{AI Catalog found?}
     C -->|No| D[Cache the miss, stay silent]
     C -->|Yes| E[Select application/mcp-server-card+json entries]
-    E --> F{Already installed, or previously declined?}
+    E --> G[Resolve the Server Card for each entry]
+    G --> F{Endpoint already installed, or previously declined?}
     F -->|Yes| D
-    F -->|No| G[Fetch the Server Card from the entry's url]
-    G --> H["Offer install — naming the endorsement chain"]
+    F -->|No| H["Offer install — naming the listing chain"]
     H --> I{User approves?}
     I -->|This session| J[Server connected mid-turn]
     I -->|Always| K[Server connected and persisted to config]
     I -->|Not now| L[Remember the decline]
 ```
+
+Two details worth getting right when you walk the entries. A catalog can **nest** — an entry
+whose `type` is `application/ai-catalog+json` points at another catalog rather than an artifact
+— so a client that filters for `application/mcp-server-card+json` and stops will silently miss
+servers on any domain that organizes that way. Recurse, but bound it: the specification
+recommends a maximum depth of 4, and you should track visited URLs so a cycle cannot walk you in
+circles. Second, an entry carries its artifact either by reference or inline, so not every entry
+requires a fetch.
 
 A closely related and equally bounded set: the domains a **project** already points at — links
 in an `AGENTS.md`, a project config, or whatever hints file your client injects into the system
@@ -153,18 +162,20 @@ flowchart LR
   fetch or scrape — and read the target host out of the tool's input before or alongside the
   call. This needs no change to the tool itself, and you stay in control of _which_ tools
   trigger a probe. (Goose implements this shape with
-  [lifecycle hooks](https://goose-docs.ai/docs/guides/context-engineering/hooks): a `hooks.json`
-  maps `PreToolUse` / `PostToolUse` to scripts, with a `matcher` regex selecting the tool and
-  the tool input handed to the hook as JSON.)
+  [lifecycle hooks](https://goose-docs.ai/docs/guides/context-engineering/hooks), following the
+  cross-tool [Open Plugins](https://open-plugins.com/agent-builders/components/hooks) spec: a
+  plugin's `hooks/hooks.json` maps `PreToolUse` / `PostToolUse` to scripts, with a `matcher`
+  regex selecting the tool and the tool input handed to the hook as JSON. Note the hook layer
+  runs local commands, so it is itself a surface worth trusting deliberately.)
 - **The network egress boundary.** The broadest option: if your client already mediates network
   access, that chokepoint sees every domain the agent actually reaches, not just the ones a tool
   or file surfaced — so discovery can ride the same seam as the filtering you already do there.
   It composes with an allow/deny boundary you may already run, but it is also where the noise is
   worst: most domains publish no catalog, so the caching in
-  [Keep probing cheap](#keep-probing-cheap-and-let-enterprises-scope-it) matters most here.
-  (Goose's [macOS sandbox](https://goose-docs.ai/docs/guides/sandbox/) is built this way — a
-  seatbelt sandbox denies direct network access and forces outbound traffic through a local
-  proxy that checks each destination against a list.)
+  [Keep probing cheap](#keep-probing-cheap-and-let-enterprises-scope-it) matters most here. (A
+  sandbox that denies the agent direct network access and tunnels its traffic through a local
+  proxy already has this chokepoint; the proxy sees every destination before the connection is
+  made.)
 
 **We do not recommend turning these on by default at this time.** Ship them opt-in, behind a
 setting, while the ecosystem and the interaction pattern are still young — the default-on
@@ -192,18 +203,16 @@ equivalent block written into `config.yaml`.
 
 ### Security and trust considerations
 
-#### Show the endorsement chain, not just the endpoint
+#### Show the listing chain, not just the endpoint
 
-The domain that publishes a catalog is frequently **not** the domain that hosts the server it
-points at. `github.com`'s AI Catalog references a server on `api.githubcopilot.com`; a Google
-catalog may point at `googleapis.com`. A prompt that names only the endpoint asks the user to
-trust a domain they may not recognize as belonging to the service — which is
-indistinguishable, from the user's side, from a phishing prompt.
+The domain that publishes a catalog is often **not** the domain that hosts the server it points
+at — a catalog on `example.com` may list a server running on `mcp-host-saas.com`. A prompt that
+names only the endpoint asks the user to trust a domain they may not recognize as belonging to
+the service, which is indistinguishable, from the user's side, from a phishing prompt.
 
 Surface the **chain** instead: the domain the user actually interacted with, the fact that it
-endorsed the entry, and the domain that will own the connection. The endorsement is the trust
-signal the user can evaluate; the raw endpoint is not. Name both, and make it clear which one
-the credentials and traffic will go to.
+listed the entry, and the domain that will own the connection. Name both, and make it clear
+which one the credentials and traffic will go to.
 
 A minimal prompt carrying that chain:
 
@@ -211,22 +220,46 @@ A minimal prompt carrying that chain:
 ┌──────────────────────────────────────────────────────────┐
 │  Connect an MCP server?                                  │
 │                                                          │
-│  github.com lists a server it does not host:             │
+│  example.com lists a server it does not host:            │
 │                                                          │
-│      GitHub          github.com                          │
-│         └── hosted at  api.githubcopilot.com             │
+│      Example          example.com                        │
+│         └── hosted at  mcp-host-saas.com                 │
 │                                                          │
 │  Requests and any credentials you approve will go to     │
-│  api.githubcopilot.com.                                  │
+│  mcp-host-saas.com.                                      │
 │                                                          │
 │         [ Not now ]   [ This session ]   [ Always ]      │
 └──────────────────────────────────────────────────────────┘
 ```
 
-Two things are doing the work here. The endorsing domain is the one the user recognizes and
-just interacted with, so it leads. The hosting domain is named as a **consequence** — where
-traffic and credentials actually go — rather than as a bare URL the user is asked to
-pattern-match against a brand they know.
+Two things are doing the work here. The listing domain is the one the user recognizes and just
+interacted with, so it leads. The hosting domain is named as a **consequence** — where traffic
+and credentials actually go — rather than as a bare URL the user is asked to pattern-match
+against a brand they know.
+
+Be careful what you claim for that chain. A listing is an assertion by whoever controls the
+domain, not a verified statement about the server: the AI Catalog specification attaches no
+endorsement semantics to publication, and a compromised catalog host can inject entries. Where
+an entry carries a
+[trust manifest](https://github.com/Agent-Card/ai-catalog/blob/main/specification/ai-catalog.md),
+that — publisher identity and attestations — is the mechanism built for this decision, and the
+listing chain is what you fall back on when it is absent.
+
+#### Do not let a probe reach where a user could not
+
+A probe is an outbound request to a host the client picked, which makes it a request-forgery
+primitive if you leave it unbounded. Restrict it to publicly resolvable hosts: reject IP
+literals, loopback, link-local, and private ranges, and re-check after DNS resolution rather
+than only on the hostname, so a name that resolves inward is caught. `169.254.169.254` and its
+equivalents are the case that matters most — a cloud instance probing its own metadata endpoint
+is a credential disclosure, not a discovery miss.
+
+The rest is ordinary hygiene, and worth stating because the probe is automatic and unattended:
+send no cookies, credentials, or ambient authorization; cap the response size and the number of
+entries you will follow; and bound redirects, resolving each hop under the same rules — a
+redirect is the easy way around a check applied only to the URL you started with. In a managed
+environment, an internal host that _does_ serve a catalog is best reached through the enterprise
+controls below rather than by relaxing these rules.
 
 #### Always ask before installing — and be stricter here than you are with tools
 
@@ -237,9 +270,9 @@ adds a new, unvetted counterparty to the session — one that will expose its ow
 its own inputs, and persist if the user lets it. That asymmetry means the autonomy settings a
 client offers for tools should not simply extend to installs:
 
-- **A discovered server MUST NOT be installed automatically.** No "completely autonomous" mode
-  should silently connect one. The approval dialog is load-bearing: the endorsing domain is the
-  user's only trust signal, and skipping the prompt discards it.
+- **A discovered server should never be installed automatically.** No "completely autonomous"
+  mode should silently connect one. The approval dialog is load-bearing: the listing chain is
+  the user's main signal, and skipping the prompt discards it.
 - **There is no blanket "always allow."** An install approval is scoped to _that server_, never
   to discovery in general and never to a domain's future entries.
 
@@ -258,12 +291,16 @@ change to their setup.
 
 Discovery is only useful if it stays quiet. A client that re-offers a server the user already
 runs, or that surfaces every entry on a busy catalog at once, trains the user to dismiss the
-prompt without reading it — which costs you the one moment where the endorsement chain above
+prompt without reading it — which costs you the one moment where the listing chain above
 actually gets evaluated.
 
-- **Track what is already installed.** Resolve a discovered entry back to a server the user has
-  configured — match on the Server Card's `name`, and on the transport URLs in `remotes[]` for
-  servers added before any card existed — and stay silent on a hit.
+- **Track what is already installed, keyed on the server's endpoint.** Match a discovered entry
+  against the user's configured servers on the transport URLs in the card's `remotes[]` — the
+  thing you would actually connect to. Resist keying on the card's `name` or the entry's
+  `identifier`: both are strings the catalog asserts about itself, so a hostile entry that
+  claims a name you already run would silence the prompt by design. Endpoint matching has no
+  such failure mode, since an entry that names the same endpoint _is_ the same server. Note this
+  means the de-dup check happens after you fetch the card, not before.
 - **Consider culling a long catalog.** A domain may list many servers. Presenting the full list
   is usually fine — most catalogs are short. But if a catalog is long, there is room to get
   creative: an inference step over the entries' descriptions, weighed against what the user is
@@ -301,15 +338,15 @@ the technical detail.
 │                                                          │
 │  Direct installs are disabled by your organization.      │
 │                                                          │
-│  Server     GitHub                                       │
-│  Listed by  github.com                                   │
-│  Hosted at  api.githubcopilot.com                        │
-│  Auth       OAuth 2.0                                    │
+│  Server     Example                                      │
+│  Listed by  example.com                                  │
+│  Hosted at  mcp-host-saas.com                            │
+│  Transport  streamable HTTP                              │
 │                                                          │
 │  Why do you need it?                                     │
 │  ┌────────────────────────────────────────────────────┐  │
-│  │ Reviewing PRs in the session — would let the agent │  │
-│  │ read diffs directly instead of pasting them.       │  │
+│  │ Reviewing tickets in the session — would let the   │  │
+│  │ agent read them directly instead of pasting them.  │  │
 │  └────────────────────────────────────────────────────┘  │
 │                                                          │
 │              [ Cancel ]        [ Send request ]          │
@@ -318,8 +355,8 @@ the technical detail.
 
 Where that request lands is the organization's business — a ticket, a Slack approval, a pull
 request against a gateway's server list. What matters for a client implementor is that the
-Server Card gives you everything the approver needs (identity, endpoint, transport, auth
-posture) without the user having to hunt for it, and that an approved request ends with the
+Server Card gives you most of what the approver needs (identity, endpoint, transport, protocol
+versions) without the user having to hunt for it, and that an approved request ends with the
 server added to the **managed gateway** the whole org already connects through, rather than
 installed ad hoc on one laptop. The user gets a path instead of a dead end, and the platform
 team gets a queue of real, evidenced demand.

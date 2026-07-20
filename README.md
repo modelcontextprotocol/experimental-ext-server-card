@@ -16,7 +16,7 @@ A **Server Card** is a JSON document — hosted at any unreserved URI, with `GET
 - Its remote transport endpoints (URLs, headers, variable templates, supported protocol versions)
 - Optional registry-style extension metadata (`_meta`)
 
-Clients discover Server Cards through [AI Catalog](https://github.com/Agent-Card/ai-catalog) entries with the `application/mcp-server-card+json` media type.
+Clients can automatically discover Server Cards through [AI Catalog](https://github.com/Agent-Card/ai-catalog) entries advertised on domains present in agentic sessions.
 
 Server Cards intentionally omit primitive listings (tools, resources, prompts) — those remain subject to runtime listing via the protocol's standard list operations. They also intentionally omit local installation metadata — see [Relationship to the MCP Registry](#relationship-to-the-mcp-registry).
 

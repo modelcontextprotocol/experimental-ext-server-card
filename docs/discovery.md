@@ -245,7 +245,8 @@ clients:
 ```
 Access-Control-Allow-Origin: *
 Access-Control-Allow-Methods: GET
-Access-Control-Allow-Headers: Content-Type
+Access-Control-Allow-Headers: Content-Type, If-None-Match
+Access-Control-Expose-Headers: ETag
 ```
 
 This is safe because Server Cards contain only public metadata and are read-only.
@@ -258,6 +259,15 @@ Server Card hosts SHOULD include caching headers to reduce unnecessary requests:
 Cache-Control: public, max-age=3600
 ```
 
+Hosts SHOULD also return an `ETag` response header. Entity tags are opaque HTTP validators; this
+specification does not prescribe their form.
+
+After receiving an `ETag`, clients SHOULD send its value in the `If-None-Match` header on
+subsequent requests for the same resource. Hosts SHOULD honor `If-None-Match` and return
+`304 Not Modified` when the selected representation has not changed. This complements
+`Cache-Control`: fresh responses avoid requests, while entity-tag validation avoids transferring
+an unchanged document after it becomes stale.
+
 ### Transport Security
 
 Hosted Server Cards MUST be served over HTTPS (TLS 1.2 or later) in production. HTTP MAY
@@ -267,4 +277,5 @@ be used for local development only.
 
 MCP Servers SHOULD implement rate limiting on their Server Card endpoint to prevent abuse.
 
-MCP Clients SHOULD respect `Cache-Control` headers and avoid unnecessary polling.
+MCP Clients SHOULD respect `Cache-Control` headers, use returned `ETag` validators as described
+in [Caching](#caching), and avoid unnecessary polling.

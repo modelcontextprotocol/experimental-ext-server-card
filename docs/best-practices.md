@@ -90,7 +90,7 @@ If you wire that in where we recommend below, it costs you remarkably little:
 - **No new UX to design.** You already ask users to approve consequential actions like tool
   calls. This is one more approval, in a flow they already know.
 - **No new trust to establish.** You only ever offer servers published by a domain the user
-  themselves just put in front of you. You are not recommending anyone — the domain the user
+  themselves just put in front of you. You are not recommending anything — the domain the user
   named is.
 - **No discovery problem to solve.** No ranking, no index, no crawl, no editorial judgment.
   The user supplied the domain; you are just asking it what it offers.

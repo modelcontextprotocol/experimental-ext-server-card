@@ -66,11 +66,19 @@ Publish it at the domain people associate with your service:
   you — for example the domain hosting your REST API or the other resources a team becomes aware
   of _before_ they learn you also expose MCP.
 
-Review the guidance below for Client Implementors to determine the appropriate domain for your service. For example, for GitHub, it would be common for the user of a coding agent to paste a URL like `https://github.com/modelcontextprotocol/experimental-ext-server-card/pull/36` into a session. So `github.com/.well-known/ai-catalog.json` is an excellent place to put your AI catalog - not `api.githubcopilot.com/.well-known/ai-catalog.json`, where GitHub's MCP server [happens to live](https://github.com/github/github-mcp-server).
+Review the guidance below for Client Implementors to determine the appropriate domain for your
+service. For example, for GitHub, it would be common for the user of a coding agent to paste a
+URL like `https://github.com/modelcontextprotocol/experimental-ext-server-card/pull/36` into a
+session. So `github.com/.well-known/ai-catalog.json` is an excellent place to put your AI
+catalog - not `api.githubcopilot.com/.well-known/ai-catalog.json`, where GitHub's MCP server
+[happens to live](https://github.com/github/github-mcp-server).
 
 ## Best Practices for Client Implementors
 
-Every MCP server your client can discover organically helps the user to stay in the flow while giving them the capabilities they need. The hard part is that connecting a server is often a chore where the user has to leave their flow to configure it out of band, before it can help them — so most users never do it.
+Every MCP server your client can discover organically helps the user to stay in the flow while
+giving them the capabilities they need. The hard part is that connecting a server is often a
+chore where the user has to leave their flow to configure it out of band, before it can help
+them — so most users never do it.
 
 As per above guidance for server implementors, we now have a way for them to advertise
 their service in an easy-to-find, standardized location. Using this, your client can offer the
@@ -79,8 +87,8 @@ context, instead of in a settings pane the user never visits.
 
 If you wire that in where we recommend below, it costs you remarkably little:
 
-- **No new UX to design.** You already ask users to approve consequential actions like tool calls. This is one
-  more approval, in a flow they already know.
+- **No new UX to design.** You already ask users to approve consequential actions like tool
+  calls. This is one more approval, in a flow they already know.
 - **No new trust to establish.** You only ever offer servers published by a domain the user
   themselves just put in front of you. You are not recommending anyone — the domain the user
   named is.
@@ -105,9 +113,8 @@ trigger one.
 
 Where a concrete example helps, this section points at [Goose](https://goose-docs.ai/), an
 open-source MCP agent hosted by the Agentic AI Foundation, simply because its hooks and install
-path are easy to read. Nothing
-here is Goose-specific — every mechanism below has an equivalent in any client that runs tools,
-reads project files, or mediates network access.
+path are easy to read. Nothing here is Goose-specific — every mechanism below has an equivalent
+in any client that runs tools, reads project files, or mediates network access.
 
 #### Start here: probe the domains a user hands you
 

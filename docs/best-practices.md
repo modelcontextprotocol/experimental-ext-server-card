@@ -70,11 +70,7 @@ Review the guidance below for Client Implementors to determine the appropriate d
 
 ## Best Practices for Client Implementors
 
-Every MCP server your client can reach is capability you did not have to build. A user who
-connects one gets more done without leaving you, and comes back for it — servers make a client
-more useful and stickier. The hard part is that connecting a server is a chore the user has to
-go and do somewhere else, out of band, before it can help them — so most users never do it, and
-the capability sits unclaimed.
+Every MCP server your client can discover organically helps the user to stay in the flow while giving them the capabilities they need. The hard part is that connecting a server is often a chore where the user has to leave their flow to configure it out of band, before it can help them — so most users never do it.
 
 As per above guidance for server implementors, we now have a way for them to advertise
 their service in an easy-to-find, standardized location. Using this, your client can offer the

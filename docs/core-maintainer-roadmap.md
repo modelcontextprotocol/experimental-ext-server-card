@@ -22,9 +22,6 @@ implementation. Getting to an accepted, adoptable extension is the top priority.
 - Freeze `schema.json` as a public contract and keep the SDK models from
   drifting from it.
 
-_Open question:_ does one SDK (Python) satisfy the review bar, or do we want Go
-and TypeScript merged first?
-
 ## 2. Describe what a server does, not just where to reach it
 
 A card today says _where_ to connect but not _what_ the server can do. That
@@ -39,9 +36,6 @@ them back for static discovery.
   ([#30], [SEP-2127 thread][sep-2127]).
 - Settle the split with the MCP Registry `server.json` and keep the two shapes
   consistent (avoid `server.json` breaking changes).
-
-_Open question:_ does static capability data belong on the card, in
-`server.json`, or both — and how do we signal staleness?
 
 ## 3. Authentication
 

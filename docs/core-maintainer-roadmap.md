@@ -17,7 +17,7 @@ unlock MCP as a part of a discoverable web of agents.
 
 A card today says _where_ to connect but not _what_ the server can do. That
 blocks consumers from using Server Cards for richer discovery and informing
-end users of what to expect. `server/discover` and list endpoints are 
+end users of what to expect. `server/discover` and list endpoints are
 frequently gated by auth, so an enriched server card would help significantly.
 Primitives were deliberately removed from the card ([PR #19]); this track
 revisits adding them back for static discovery.
